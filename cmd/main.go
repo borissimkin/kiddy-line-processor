@@ -1,8 +1,7 @@
 package main
 
-import "fmt"
+import "kiddy-line-processor/internal/app"
 
 func main() {
-	fmt.Println("run")
+	app.Run()
 }
-
