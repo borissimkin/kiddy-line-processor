@@ -8,7 +8,7 @@ import (
 func Run() {
 	line := service.LineService{}
 
-	resp, err :=line.Fetch()
+	resp, err := line.Fetch()
 	if err != nil {
 		fmt.Println(err)
 	}

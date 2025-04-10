@@ -1,3 +1,7 @@
 services:
   lines-provider:
     image: antonboom/lines-provider
+    expose:
+      - 8000
+    ports:
+      - 8000:8000
