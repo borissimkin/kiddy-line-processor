@@ -1,25 +1,27 @@
 package http
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"net/http"
 )
 
-type ServerConfig struct {
-	Host string
-	Port int
+type Server struct {
+	Addr string
 }
 
-type Server struct{}
+func NewServer(Addr string) *Server {
+	return &Server{
+		Addr: Addr,
+	}
+}
 
 func readyHandle(w http.ResponseWriter, _ *http.Request) {
 	io.WriteString(w, "Hello from a HandleFunc #1!\n")
 }
 
-func (s *Server) Run(cfg ServerConfig) {
+func (s *Server) Run() {
 	http.HandleFunc("/ready", readyHandle)
 
-	log.Fatal(http.ListenAndServe(fmt.Sprintf("%s:%d", cfg.Host, cfg.Port), nil))
+	log.Fatal(http.ListenAndServe(s.Addr, nil))
 }
