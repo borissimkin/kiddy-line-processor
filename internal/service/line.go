@@ -34,6 +34,6 @@ func (s *LineService) Fetch() (*LineBaseballResponse, error) {
 	payload := &LineBaseballResponse{}
 
 	err = json.Unmarshal(body, &LineResponseWrapper{payload})
-	
+
 	return payload, err
 }

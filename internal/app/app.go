@@ -1,17 +1,20 @@
 package app
 
-import (
-	"fmt"
-	"kiddy-line-processor/internal/service"
-)
+// import "kiddy-line-processor/internal/controller/http"
 
 func Run() {
-	line := service.LineService{}
+	// todo: config
 
-	resp, err := line.Fetch()
-	if err != nil {
-		fmt.Println(err)
-	}
+	// httpServer := &http.Server{}
 
-	fmt.Println(resp)
+	// httpServer.Run()
+
+	// line := service.LineService{}
+
+	// resp, err := line.Fetch()
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
+
+	// fmt.Println(resp)
 }
