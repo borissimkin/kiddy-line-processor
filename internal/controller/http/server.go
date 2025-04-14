@@ -19,7 +19,7 @@ func NewServer(Addr string) *Server {
 func readyHandle(w http.ResponseWriter, _ *http.Request) {
 	io.WriteString(w, "Hello from a HandleFunc #1!\n")
 }
-
+	
 func (s *Server) Run() {
 	http.HandleFunc("/ready", readyHandle)
 

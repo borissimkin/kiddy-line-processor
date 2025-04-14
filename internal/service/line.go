@@ -15,6 +15,7 @@ type LineSportPuller interface {
 	Pull() error
 }
 
+
 type LineSportProvider struct {
 	sport        string
 	fetcher      SportLineCoefFetcher
