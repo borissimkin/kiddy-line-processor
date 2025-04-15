@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"kiddy-line-processor/internal/controller/http"
+	"kiddy-line-processor/internal/repo"
 	"kiddy-line-processor/internal/service"
 	"time"
 )
@@ -18,8 +19,32 @@ type Config struct {
 	PullIntervals PullInterval
 }
 
-func InitLineSportProviders() []service.LineSportProvider {
-	
+func initLineSportProviders(config Config) []service.LineSportProvider {
+	return []service.LineSportProvider{
+		{Sport: "baseball", Storage: &repo.MemoryStorage{Sport: "baseball"}, PullInteval: config.PullIntervals.Baseball},
+		{Sport: "football", Storage: &repo.MemoryStorage{Sport: "football"}, PullInteval: config.PullIntervals.Footbal},
+		{Sport: "soccer", Storage: &repo.MemoryStorage{Sport: "soccer"}, PullInteval: config.PullIntervals.Soccer},
+	}
+}
+
+func pullSportLine(provider service.LineSportProvider) {
+	fmt.Println(fmt.Printf("%s start pulling with sleep %s", provider.Sport, provider.PullInteval))
+	time.Sleep(provider.PullInteval)
+	provider.Pull()
+	fmt.Println(fmt.Printf("%s pulled!", provider.Sport))
+}
+
+func runSportPulling(provider service.LineSportProvider) {
+	for {
+		pullSportLine(provider)
+	}
+}
+
+func runSportsPulling(providers []service.LineSportProvider) {
+	for _, provider := range providers {
+		runSportPulling(provider)
+	}
+
 }
 
 func Run() {
@@ -31,16 +56,11 @@ func Run() {
 		},
 	}
 
+	providers := initLineSportProviders(config)
+
+	runSportsPulling(providers)
+
 	httpServer := http.NewServer(":8080")
 
-	go httpServer.Run()
-
-	line := service.LineService{}
-
-	resp, err := line.Fetch()
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	fmt.Println(resp)
+	httpServer.Run()
 }

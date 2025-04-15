@@ -1,41 +1,37 @@
 package service
 
 import (
-	"fmt"
 	"kiddy-line-processor/internal/repo"
-	"log"
 	"time"
 )
-
-type SportLineCoefFetcher interface {
-	Fetch(sport string) (float32, error)
-}
 
 type LineSportPuller interface {
 	Pull() error
 }
 
-
 type LineSportProvider struct {
-	sport        string
-	fetcher      SportLineCoefFetcher
-	saver        repo.Storage
-	PullInterval time.Duration
+	Sport       string
+	Storage     repo.LineStorage
+	PullInteval time.Duration
 }
 
 func (p *LineSportProvider) Pull() error {
-	log.Println(fmt.Printf("%s pulling...", p.sport))
-	coef, err := p.fetcher.Fetch(p.sport)
+	// log.Println(fmt.Printf("%s pulling...", p.Sport))
+	coef, err := p.fetch()
 	if err != nil {
 		return err
 	}
 
-	err = p.saver.Save(p.sport, coef)
+	err = p.Storage.Save(coef)
 	if err != nil {
 		return err
 	}
-	log.Println(fmt.Printf("%s pulled!", p.sport))
+	// log.Println(fmt.Printf("%s pulled!", p.Sport))
 	return nil
+}
+
+func (p *LineSportProvider) fetch() (float32, error) {
+	return 1.2, nil
 }
 
 // type LineResponseWrapper struct {
