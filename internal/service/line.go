@@ -1,7 +1,13 @@
 package service
 
 import (
+	"encoding/json"
+	"fmt"
+	"io"
 	"kiddy-line-processor/internal/repo"
+	"net/http"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -30,8 +36,41 @@ func (p *LineSportProvider) Pull() error {
 	return nil
 }
 
-func (p *LineSportProvider) fetch() (float32, error) {
-	return 1.2, nil
+type SportProviderResponse struct {
+	Lines map[string]string `json:"lines"`
+}
+
+func (p *LineSportProvider) fetch() (float64, error) {
+	resp, err := http.Get(fmt.Sprintf("http://localhost:8000/api/v1/lines/%s", p.Sport))
+	if err != nil {
+		return 0, err
+	}
+
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+
+	if err != nil {
+		return 0, nil
+	}
+
+	var response SportProviderResponse
+
+	err = json.Unmarshal(body, &response)
+
+	if err != nil {
+		return 0, err
+	}
+
+	coef := response.Lines[strings.ToUpper(p.Sport)]
+
+	coefFloat, err := strconv.ParseFloat(coef, 64)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return coefFloat, nil
 }
 
 // type LineResponseWrapper struct {
@@ -39,7 +78,7 @@ func (p *LineSportProvider) fetch() (float32, error) {
 // }
 
 // type LineBaseballResponse struct {
-// 	Baseball float32 `json:"BASEBALL,string,omitempty"`
+// 	Baseball float64 `json:"BASEBALL,string,omitempty"`
 // }
 
 // type LineService struct {

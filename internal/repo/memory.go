@@ -1,12 +1,12 @@
 package repo
 
 import (
-	"github.com/google/uuid" // todo remove
+	"github.com/google/uuid"
 )
 
 type CoefItem struct {
 	Id   string
-	Coef float32
+	Coef float64
 }
 
 type MemoryStorage struct {
@@ -14,7 +14,7 @@ type MemoryStorage struct {
 	coefs []CoefItem
 }
 
-func (s *MemoryStorage) Save(coef float32) error {
+func (s *MemoryStorage) Save(coef float64) error {
 	s.coefs = append(s.coefs, CoefItem{
 		Id:   uuid.New().String(),
 		Coef: coef,
