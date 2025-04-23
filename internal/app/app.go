@@ -27,11 +27,13 @@ func initLineSportProviders(config Config) []service.LineSportProvider {
 	}
 }
 
-func pullSportLine(provider service.LineSportProvider) {
-	fmt.Println(fmt.Printf("%s start pulling with sleep %s", provider.Sport, provider.PullInteval))
+
+func pullSportLine(provider service.LineSportProvider) error {
+	fmt.Printf("%s start pulling with sleep %s\n", provider.Sport, provider.PullInteval)
 	time.Sleep(provider.PullInteval)
-	provider.Pull()
-	fmt.Println(fmt.Printf("%s pulled!", provider.Sport))
+	err := provider.Pull()
+	fmt.Printf("%s pulled!", provider.Sport)
+	return err
 }
 
 func runSportPulling(provider service.LineSportProvider) {
@@ -42,7 +44,7 @@ func runSportPulling(provider service.LineSportProvider) {
 
 func runSportsPulling(providers []service.LineSportProvider) {
 	for _, provider := range providers {
-		runSportPulling(provider)
+		go runSportPulling(provider)
 	}
 
 }
