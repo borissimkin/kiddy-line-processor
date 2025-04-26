@@ -26,3 +26,7 @@ func (s *MemoryStorage) Save(coef float64) error {
 func (s *MemoryStorage) GetAll() ([]CoefItem, error) {
 	return s.coefs, nil
 }
+
+func (s *MemoryStorage) Ready() bool {
+	return true
+}

@@ -19,16 +19,15 @@ type Config struct {
 	PullIntervals PullInterval
 }
 
-func initLineSportProviders(config Config) []service.LineSportProvider {
-	return []service.LineSportProvider{
+func initLineSportProviders(config Config) []*service.LineSportProvider {
+	return []*service.LineSportProvider{
 		{Sport: "baseball", Storage: &repo.MemoryStorage{Sport: "baseball"}, PullInteval: config.PullIntervals.Baseball},
-		{Sport: "football", Storage: &repo.MemoryStorage{Sport: "football"}, PullInteval: config.PullIntervals.Footbal},
-		{Sport: "soccer", Storage: &repo.MemoryStorage{Sport: "soccer"}, PullInteval: config.PullIntervals.Soccer},
+		// {Sport: "football", Storage: &repo.MemoryStorage{Sport: "football"}, PullInteval: config.PullIntervals.Footbal},
+		// {Sport: "soccer", Storage: &repo.MemoryStorage{Sport: "soccer"}, PullInteval: config.PullIntervals.Soccer},
 	}
 }
 
-
-func pullSportLine(provider service.LineSportProvider) error {
+func pullSportLine(provider *service.LineSportProvider) error {
 	fmt.Printf("%s start pulling with sleep %s\n", provider.Sport, provider.PullInteval)
 	time.Sleep(provider.PullInteval)
 	err := provider.Pull()
@@ -36,23 +35,30 @@ func pullSportLine(provider service.LineSportProvider) error {
 	return err
 }
 
-func runSportPulling(provider service.LineSportProvider) {
+func runSportPulling(provider *service.LineSportProvider) {
 	for {
 		pullSportLine(provider)
 	}
 }
 
-func runSportsPulling(providers []service.LineSportProvider) {
+func runSportsPulling(providers []*service.LineSportProvider) {
 	for _, provider := range providers {
 		go runSportPulling(provider)
 	}
-
 }
+
+// func checkLineSynced(providers []service.LineSportProvider) {
+// 	for _, provider := range providers {
+// 		<-provider.Synced
+// 	}
+
+// 	fmt.Println("awdawda ")
+// }
 
 func Run() {
 	config := Config{
 		PullIntervals: PullInterval{
-			Baseball: time.Second * 3,
+			Baseball: time.Second * 10,
 			Soccer:   time.Second * 6,
 			Footbal:  time.Second * 8,
 		},
@@ -62,7 +68,15 @@ func Run() {
 
 	runSportsPulling(providers)
 
-	httpServer := http.NewServer(":8080")
+	deps := &service.LineDependencies{
+		Providers: providers,
+	}
+
+	lineService := &service.LineService{
+		Deps: deps,
+	}
+
+	httpServer := http.NewServer(":8080", lineService)
 
 	httpServer.Run()
 }

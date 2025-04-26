@@ -19,7 +19,7 @@ type LineSportProvider struct {
 	Sport       string
 	Storage     repo.LineStorage
 	PullInteval time.Duration
-	Synced      chan (bool)
+	Synced      bool
 }
 
 func (p *LineSportProvider) Pull() error {
@@ -29,9 +29,11 @@ func (p *LineSportProvider) Pull() error {
 	}
 
 	err = p.Storage.Save(coef)
-	if err != nil {
+	if err != nil {		
 		return err
 	}
+
+	p.Synced = true
 
 	return nil
 }
@@ -71,4 +73,32 @@ func (p *LineSportProvider) fetch() (float64, error) {
 	}
 
 	return coefFloat, nil
+}
+
+
+type Line interface {
+	Ready() bool
+}
+
+type LineDependencies struct {
+	Providers []*LineSportProvider
+}
+
+type LineService struct {
+	Deps *LineDependencies
+}
+
+func (s *LineService) Ready() bool {
+	for _, provider := range s.Deps.Providers {
+		if !provider.Storage.Ready() {
+			return false
+		}
+
+		ready := provider.Synced
+		if !ready {
+			return false
+		}
+	}
+
+	return true
 }

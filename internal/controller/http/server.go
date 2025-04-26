@@ -1,27 +1,42 @@
 package http
 
 import (
-	"io"
+	"encoding/json"
+	"kiddy-line-processor/internal/service"
 	"log"
 	"net/http"
 )
 
 type Server struct {
-	Addr string
+	Addr    string
+	Service service.Line
 }
 
-func NewServer(Addr string) *Server {
+func NewServer(addr string, service service.Line) *Server {
 	return &Server{
-		Addr: Addr,
+		Addr:    addr,
+		Service: service,
 	}
 }
 
-func readyHandle(w http.ResponseWriter, _ *http.Request) {
-	io.WriteString(w, "Hello from a HandleFunc #1!\n")
+// todo: просто статус нужен
+type ReadyResponse 	struct {
+	Ready bool `json:"ready"`
 }
-	
+
+func (s *Server) readyHandle(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	isReady := s.Service.Ready()
+
+	response := &ReadyResponse{
+		Ready: isReady,
+	}
+
+	json.NewEncoder(w).Encode(response)
+}
+
 func (s *Server) Run() {
-	http.HandleFunc("/ready", readyHandle)
+	http.HandleFunc("/ready", s.readyHandle)
 
 	log.Fatal(http.ListenAndServe(s.Addr, nil))
 }
