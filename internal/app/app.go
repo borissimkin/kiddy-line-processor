@@ -5,6 +5,7 @@ import (
 	"kiddy-line-processor/internal/controller/http"
 	"kiddy-line-processor/internal/repo"
 	"kiddy-line-processor/internal/service"
+	"sync"
 	"time"
 )
 
@@ -18,12 +19,13 @@ type PullInterval struct {
 type Config struct {
 	PullIntervals PullInterval
 }
+// todo: кажется нужно сделать вейт груп который в отдельном сервисе проверит что все ченелы в горутинах ready?
 
 func initLineSportProviders(config Config) []*service.LineSportProvider {
 	return []*service.LineSportProvider{
 		{Sport: "baseball", Storage: &repo.MemoryStorage{Sport: "baseball"}, PullInteval: config.PullIntervals.Baseball},
-		// {Sport: "football", Storage: &repo.MemoryStorage{Sport: "football"}, PullInteval: config.PullIntervals.Footbal},
-		// {Sport: "soccer", Storage: &repo.MemoryStorage{Sport: "soccer"}, PullInteval: config.PullIntervals.Soccer},
+		{Sport: "football", Storage: &repo.MemoryStorage{Sport: "football"}, PullInteval: config.PullIntervals.Footbal},
+		{Sport: "soccer", Storage: &repo.MemoryStorage{Sport: "soccer"}, PullInteval: config.PullIntervals.Soccer},
 	}
 }
 
@@ -59,12 +61,14 @@ func Run() {
 	config := Config{
 		PullIntervals: PullInterval{
 			Baseball: time.Second * 10,
-			Soccer:   time.Second * 6,
-			Footbal:  time.Second * 8,
+			Soccer:   time.Second * 3,
+			Footbal:  time.Second * 5,
 		},
 	}
 
 	providers := initLineSportProviders(config)
+
+	var wg sync.WaitGroup
 
 	runSportsPulling(providers)
 
