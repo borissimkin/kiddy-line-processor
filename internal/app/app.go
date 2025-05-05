@@ -5,6 +5,7 @@ import (
 	"kiddy-line-processor/internal/controller/http"
 	"kiddy-line-processor/internal/repo"
 	"kiddy-line-processor/internal/service"
+	"runtime"
 	"sync"
 	"time"
 )
@@ -19,6 +20,7 @@ type PullInterval struct {
 type Config struct {
 	PullIntervals PullInterval
 }
+
 // todo: кажется нужно сделать вейт груп который в отдельном сервисе проверит что все ченелы в горутинах ready?
 
 func initLineSportProviders(config Config) []*service.LineSportProvider {
@@ -29,23 +31,29 @@ func initLineSportProviders(config Config) []*service.LineSportProvider {
 	}
 }
 
-func pullSportLine(provider *service.LineSportProvider) error {
+func pullSportLine(provider *service.LineSportProvider, wg *sync.WaitGroup) error {
 	fmt.Printf("%s start pulling with sleep %s\n", provider.Sport, provider.PullInteval)
 	time.Sleep(provider.PullInteval)
 	err := provider.Pull()
+	// todo: check err
+	if !provider.Synced {
+		fmt.Println("Done")
+		wg.Done()
+	}
+	provider.Synced = true
 	fmt.Printf("%s pulled!", provider.Sport)
 	return err
 }
 
-func runSportPulling(provider *service.LineSportProvider) {
+func runSportPulling(provider *service.LineSportProvider, wg *sync.WaitGroup) {
 	for {
-		pullSportLine(provider)
+		pullSportLine(provider, wg)
 	}
 }
 
-func runSportsPulling(providers []*service.LineSportProvider) {
+func runSportsPulling(providers []*service.LineSportProvider, wg *sync.WaitGroup) {
 	for _, provider := range providers {
-		go runSportPulling(provider)
+		go runSportPulling(provider, wg)
 	}
 }
 
@@ -68,12 +76,19 @@ func Run() {
 
 	providers := initLineSportProviders(config)
 
-	var wg sync.WaitGroup
+	wg := new(sync.WaitGroup)
 
-	runSportsPulling(providers)
+	wg.Add(len(providers))
+
+	ready := service.NewReadyService(wg)
+
+	runSportsPulling(providers, wg)
+
+	ready.Wait()
 
 	deps := &service.LineDependencies{
-		Providers: providers,
+		Providers:    providers,
+		ReadyService: ready,
 	}
 
 	lineService := &service.LineService{
@@ -82,5 +97,12 @@ func Run() {
 
 	httpServer := http.NewServer(":8080", lineService)
 
-	httpServer.Run()
+	go httpServer.Run()
+
+	fmt.Println("Ждет реади")
+	awd := <-ready.Ready
+	fmt.Println("Иницализация gRPC")
+	fmt.Println(awd)
+	runtime.Goexit()
+
 }
