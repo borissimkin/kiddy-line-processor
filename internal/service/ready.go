@@ -1,26 +1,23 @@
 package service
 
 import (
-	"fmt"
 	"sync"
 )
 
+// todo: вынести сюда проверку доступности хранилища?
 type ReadyService struct {
 	Wg    *sync.WaitGroup
-	Ready chan bool
+	Ready bool
 }
 
 func NewReadyService(wg *sync.WaitGroup) *ReadyService {
 	return &ReadyService{
 		Wg:    wg,
-		Ready: make(chan bool),
+		Ready: false,
 	}
 }
 
 func (s *ReadyService) Wait() {
-	go func() {
-		s.Wg.Wait()
-		fmt.Println("Release wait")
-		s.Ready <- true
-	}()
+	s.Wg.Wait()
+	s.Ready = true
 }

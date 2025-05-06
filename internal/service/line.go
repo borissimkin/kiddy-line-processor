@@ -95,10 +95,13 @@ func (s *LineService) Ready() bool {
 		}
 	}
 
-	select {
-	case isReady := <-s.Deps.ReadyService.Ready:
-		return isReady
-	default:
-		return false
-	}
+	return s.Deps.ReadyService.Ready
+
+	// select {
+	// case isReady := <-s.Deps.ReadyService.Ready:
+	// 	fmt.Println("ready")
+	// 	return isReady
+	// default:
+	// 	return false
+	// }
 }

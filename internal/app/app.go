@@ -57,14 +57,6 @@ func runSportsPulling(providers []*service.LineSportProvider, wg *sync.WaitGroup
 	}
 }
 
-// func checkLineSynced(providers []service.LineSportProvider) {
-// 	for _, provider := range providers {
-// 		<-provider.Synced
-// 	}
-
-// 	fmt.Println("awdawda ")
-// }
-
 func Run() {
 	config := Config{
 		PullIntervals: PullInterval{
@@ -84,8 +76,6 @@ func Run() {
 
 	runSportsPulling(providers, wg)
 
-	ready.Wait()
-
 	deps := &service.LineDependencies{
 		Providers:    providers,
 		ReadyService: ready,
@@ -100,9 +90,9 @@ func Run() {
 	go httpServer.Run()
 
 	fmt.Println("Ждет реади")
-	awd := <-ready.Ready
+	ready.Wait()
 	fmt.Println("Иницализация gRPC")
-	fmt.Println(awd)
+	// fmt.Println(awd)
 	runtime.Goexit()
 
 }
