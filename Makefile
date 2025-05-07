@@ -3,3 +3,8 @@ help:  ## Display this help
 
 up-lines-provider:
 	docker-compose up lines-provider
+
+protoc:
+	@echo "Generating Go files"
+	cd internal/proto && protoc --go_out=. --go-grpc_out=. \
+		--go-grpc_opt=paths=source_relative --go_opt=paths=source_relative *.proto

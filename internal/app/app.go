@@ -21,8 +21,6 @@ type Config struct {
 	PullIntervals PullInterval
 }
 
-// todo: кажется нужно сделать вейт груп который в отдельном сервисе проверит что все ченелы в горутинах ready?
-
 func initLineSportProviders(config Config) []*service.LineSportProvider {
 	return []*service.LineSportProvider{
 		{Sport: "baseball", Storage: &repo.MemoryStorage{Sport: "baseball"}, PullInteval: config.PullIntervals.Baseball},
@@ -92,7 +90,6 @@ func Run() {
 	fmt.Println("Ждет реади")
 	ready.Wait()
 	fmt.Println("Иницализация gRPC")
-	// fmt.Println(awd)
 	runtime.Goexit()
 
 }
