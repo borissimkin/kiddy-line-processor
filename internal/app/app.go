@@ -2,12 +2,19 @@ package app
 
 import (
 	"fmt"
+	grpclines "kiddy-line-processor/internal/controller/grpc"
 	"kiddy-line-processor/internal/controller/http"
+	pb "kiddy-line-processor/internal/proto"
 	"kiddy-line-processor/internal/repo"
 	"kiddy-line-processor/internal/service"
-	"runtime"
+	"log"
+	"net"
 	"sync"
 	"time"
+
+	"google.golang.org/grpc/reflection"
+
+	"google.golang.org/grpc"
 )
 
 // todo: to env
@@ -89,7 +96,16 @@ func Run() {
 
 	fmt.Println("Ждет реади")
 	ready.Wait()
+
 	fmt.Println("Иницализация gRPC")
-	runtime.Goexit()
+	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", 8081))
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+	var opts []grpc.ServerOption
+	grpcServer := grpc.NewServer(opts...)
+	reflection.Register(grpcServer)
+	pb.RegisterSportsLinesServiceServer(grpcServer, grpclines.NewServer())
+	grpcServer.Serve(lis)
 
 }

@@ -2,18 +2,34 @@ package grpc
 
 import (
 	"fmt"
+	"io"
 	pb "kiddy-line-processor/internal/proto"
 )
 
-func awdawda() {
-	p := pb.Person{
-		Id:    1234,
-		Name:  "John Doe",
-		Email: "jdoe@example.com",
-		Phones: []*pb.Person_PhoneNumber{
-			{Number: "555-4321", Type: pb.PhoneType_PHONE_TYPE_HOME},
-		},
-	}
+type SportsLinesServer struct {
+	pb.UnimplementedSportsLinesServiceServer
+}
 
-	fmt.Println(p.Name)
+func NewServer() *SportsLinesServer {
+	return &SportsLinesServer{}
+}
+
+func (s *SportsLinesServer) SubscribeOnSportsLines(stream pb.SportsLinesService_SubscribeOnSportsLinesServer) error {
+	for {
+		req, err := stream.Recv()
+		fmt.Println(req)
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		response := &pb.SubscribeResponse{
+			Sports: map[string]float32{
+				"baseball": 0.3,
+			},
+		}
+
+		stream.Send(response)
+	}
 }

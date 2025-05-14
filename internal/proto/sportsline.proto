@@ -1,0 +1,19 @@
+syntax = "proto3";
+package proto;
+
+
+option go_package = "kiddy-line-processor/internal/proto";
+import "google/protobuf/duration.proto";
+
+service SportsLinesService {
+  rpc SubscribeOnSportsLines(stream SubscribeRequest) returns (stream SubscribeResponse);
+}
+
+message SubscribeRequest {
+  repeated string sport = 1;
+  google.protobuf.Duration interval = 2;
+}
+
+message SubscribeResponse {
+  map<string, float> sports = 1;
+}
