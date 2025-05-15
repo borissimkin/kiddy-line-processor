@@ -17,6 +17,8 @@ import (
 	"google.golang.org/grpc"
 )
 
+type SportsNap = map[string]*service.SportService
+
 // todo: to env
 type PullInterval struct {
 	Baseball time.Duration
@@ -65,10 +67,22 @@ func runSportsPulling(providers []*service.LineSportProvider, wg *sync.WaitGroup
 func Run() {
 	config := Config{
 		PullIntervals: PullInterval{
-			Baseball: time.Second * 10,
-			Soccer:   time.Second * 3,
-			Footbal:  time.Second * 5,
+			Baseball: time.Second * 1,
+			Soccer:   time.Second * 1,
+			Footbal:  time.Second * 2,
 		},
+	}
+
+	names := []string{
+		"baseball",
+		"soccer",
+		"football",
+	}
+
+	var sports SportsNap
+
+	for _, name := range names {
+		sports[name] = service.NewSportService(name)
 	}
 
 	providers := initLineSportProviders(config)
@@ -105,6 +119,11 @@ func Run() {
 	var opts []grpc.ServerOption
 	grpcServer := grpc.NewServer(opts...)
 	reflection.Register(grpcServer)
+	linesServer := grpclines.NewServer(&service.KiddyLineServiceDeps{
+		Sports: {
+			"baseball": 
+		},
+	})
 	pb.RegisterSportsLinesServiceServer(grpcServer, grpclines.NewServer())
 	grpcServer.Serve(lis)
 
