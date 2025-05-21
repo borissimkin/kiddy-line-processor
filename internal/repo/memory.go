@@ -32,5 +32,9 @@ func (s *MemoryStorage) Ready() bool {
 }
 
 func (s *MemoryStorage) GetLast() (CoefItem, error) {
+	if len(s.coefs) == 0 {
+		return CoefItem{}, nil
+	}
+
 	return s.coefs[len(s.coefs)-1], nil
 }

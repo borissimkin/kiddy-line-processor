@@ -5,7 +5,6 @@ import (
 	grpclines "kiddy-line-processor/internal/controller/grpc"
 	"kiddy-line-processor/internal/controller/http"
 	pb "kiddy-line-processor/internal/proto"
-	"kiddy-line-processor/internal/repo"
 	"kiddy-line-processor/internal/service"
 	"log"
 	"net"
@@ -17,12 +16,12 @@ import (
 	"google.golang.org/grpc"
 )
 
-type SportsNap = map[string]*service.SportService
+type SportsMap = map[string]*service.SportService
 
 // todo: to env
 type PullInterval struct {
 	Baseball time.Duration
-	Footbal  time.Duration
+	Football time.Duration
 	Soccer   time.Duration
 }
 
@@ -30,25 +29,28 @@ type Config struct {
 	PullIntervals PullInterval
 }
 
-func initLineSportProviders(config Config) []*service.LineSportProvider {
+func initLineSportProviders(config Config, sports SportsMap) []*service.LineSportProvider {
 	return []*service.LineSportProvider{
-		{Sport: "baseball", Storage: &repo.MemoryStorage{Sport: "baseball"}, PullInteval: config.PullIntervals.Baseball},
-		{Sport: "football", Storage: &repo.MemoryStorage{Sport: "football"}, PullInteval: config.PullIntervals.Footbal},
-		{Sport: "soccer", Storage: &repo.MemoryStorage{Sport: "soccer"}, PullInteval: config.PullIntervals.Soccer},
+		{Sport: sports["baseball"], PullInteval: config.PullIntervals.Baseball},
+		{Sport: sports["football"], PullInteval: config.PullIntervals.Football},
+		{Sport: sports["soccer"], PullInteval: config.PullIntervals.Soccer},
 	}
 }
 
 func pullSportLine(provider *service.LineSportProvider, wg *sync.WaitGroup) error {
-	fmt.Printf("%s start pulling with sleep %s\n", provider.Sport, provider.PullInteval)
+	fmt.Printf("%s start pulling with sleep %s\n", provider.Sport.Name, provider.PullInteval)
 	time.Sleep(provider.PullInteval)
 	err := provider.Pull()
-	// todo: check err
+
+	if err != nil {
+		fmt.Println(err)
+	}
 	if !provider.Synced {
 		fmt.Println("Done")
 		wg.Done()
 	}
 	provider.Synced = true
-	fmt.Printf("%s pulled!", provider.Sport)
+	fmt.Printf("%s pulled!", provider.Sport.Name)
 	return err
 }
 
@@ -69,7 +71,7 @@ func Run() {
 		PullIntervals: PullInterval{
 			Baseball: time.Second * 1,
 			Soccer:   time.Second * 1,
-			Footbal:  time.Second * 2,
+			Football: time.Second * 2,
 		},
 	}
 
@@ -79,13 +81,13 @@ func Run() {
 		"football",
 	}
 
-	var sports SportsNap
+	sports := make(SportsMap)
 
 	for _, name := range names {
 		sports[name] = service.NewSportService(name)
 	}
 
-	providers := initLineSportProviders(config)
+	providers := initLineSportProviders(config, sports)
 
 	wg := new(sync.WaitGroup)
 
@@ -96,7 +98,7 @@ func Run() {
 	runSportsPulling(providers, wg)
 
 	deps := &service.LineDependencies{
-		Providers:    providers,
+		Sports:       sports,
 		ReadyService: ready,
 	}
 
@@ -120,11 +122,9 @@ func Run() {
 	grpcServer := grpc.NewServer(opts...)
 	reflection.Register(grpcServer)
 	linesServer := grpclines.NewServer(&service.KiddyLineServiceDeps{
-		Sports: {
-			"baseball": 
-		},
+		Sports: sports,
 	})
-	pb.RegisterSportsLinesServiceServer(grpcServer, grpclines.NewServer())
+	pb.RegisterSportsLinesServiceServer(grpcServer, linesServer)
 	grpcServer.Serve(lis)
 
 }

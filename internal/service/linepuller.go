@@ -15,7 +15,7 @@ type LineSportPuller interface {
 }
 
 type LineSportProvider struct {
-	sport       SportService
+	Sport       *SportService
 	PullInteval time.Duration
 	Synced      bool // todo: remove
 }
@@ -26,7 +26,7 @@ func (p *LineSportProvider) Pull() error {
 		return err
 	}
 
-	err = p.sport.Save(coef)
+	err = p.Sport.Save(coef)
 	if err != nil {
 		return err
 	}
@@ -41,7 +41,7 @@ type SportProviderResponse struct {
 }
 
 func (p *LineSportProvider) fetch() (float64, error) {
-	resp, err := http.Get(fmt.Sprintf("http://localhost:8000/api/v1/lines/%s", p.sport.Name))
+	resp, err := http.Get(fmt.Sprintf("http://localhost:8000/api/v1/lines/%s", p.Sport.Name))
 	if err != nil {
 		return 0, err
 	}
@@ -62,7 +62,7 @@ func (p *LineSportProvider) fetch() (float64, error) {
 		return 0, err
 	}
 
-	coef := response.Lines[strings.ToUpper(p.sport.Name)]
+	coef := response.Lines[strings.ToUpper(p.Sport.Name)]
 
 	coefFloat, err := strconv.ParseFloat(coef, 64)
 
@@ -79,7 +79,7 @@ type Line interface {
 }
 
 type LineDependencies struct {
-	Sports       []*SportService
+	Sports       map[string]*SportService
 	ReadyService *ReadyService
 }
 
