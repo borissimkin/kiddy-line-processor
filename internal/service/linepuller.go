@@ -31,8 +31,6 @@ func (p *LineSportProvider) Pull() error {
 		return err
 	}
 
-	// p.Synced = true
-
 	return nil
 }
 

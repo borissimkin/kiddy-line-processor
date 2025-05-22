@@ -33,17 +33,32 @@ func NewServer(deps *service.KiddyLineServiceDeps) *SportsLinesServer {
 // }
 
 type PreviosRequest struct {
-	Sport    []string
-	Interval time.Duration
+	Sport []string
 }
 
+func isSame(oldSports []string, sports []string) bool {
+	if len(oldSports) != len(sports) {
+		return false
+	}
+
+	for index, _ := range oldSports {
+		if oldSports[index] != sports[index] {
+			return false
+		}
+	}
+
+	return true
+}
+
+// {"sport": "soccer", "sport": "football", "interval": "3s"}
+// {"sport": "soccer", "sport": "football", "interval": "1s"}
+// {"sport": "baseball", "sport": "football", "interval": "5s"}
 func (s *SportsLinesServer) SubscribeOnSportsLines(stream pb.SportsLinesService_SubscribeOnSportsLinesServer) error {
 	var prevReq PreviosRequest
 	initialCoef := make(map[string]float32)
 	var cancelSender context.CancelFunc
 
 	for {
-		// reqCh := make(chan pb.SubscribeRequest)
 		stream.Context()
 		req, err := stream.Recv()
 		if err == io.EOF {
@@ -61,13 +76,23 @@ func (s *SportsLinesServer) SubscribeOnSportsLines(stream pb.SportsLinesService_
 			Sports: make(map[string]float32),
 		}
 
-		for _, sport := range req.Sport {
-			coef, err := s.deps.Sports[sport].GetLast()
-			if err != nil {
-				return err
+		if isSame(prevReq.Sport, req.Sport) {
+			for _, sport := range req.Sport {
+				coef, err := s.deps.Sports[sport].GetLast()
+				if err != nil {
+					return err
+				}
+				resp.Sports[sport] = initialCoef[sport] - float32(coef.Coef)
 			}
-			resp.Sports[sport] = float32(coef.Coef)
-			initialCoef[sport] = float32(coef.Coef)
+		} else {
+			for _, sport := range req.Sport {
+				coef, err := s.deps.Sports[sport].GetLast()
+				if err != nil {
+					return err
+				}
+				resp.Sports[sport] = float32(coef.Coef)
+				initialCoef[sport] = float32(coef.Coef)
+			}
 		}
 
 		stream.Send(resp)
@@ -75,11 +100,10 @@ func (s *SportsLinesServer) SubscribeOnSportsLines(stream pb.SportsLinesService_
 		ctx, cancel := context.WithCancel(context.Background())
 		cancelSender = cancel
 
-		prevReq.Interval = req.Interval.AsDuration()
 		prevReq.Sport = req.Sport
 
 		go func(req *pb.SubscribeRequest, ctx context.Context) {
-			ticker := time.NewTicker(time.Second * 5)
+			ticker := time.NewTicker(req.Interval.AsDuration())
 
 			for {
 				select {

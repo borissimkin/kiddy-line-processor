@@ -36,7 +36,7 @@ func initLineSportProviders(config Config, sports SportsMap) []*service.LineSpor
 		{Sport: sports["soccer"], PullInteval: config.PullIntervals.Soccer},
 	}
 }
-
+// todo: to ticker
 func pullSportLine(provider *service.LineSportProvider, wg *sync.WaitGroup) error {
 	fmt.Printf("%s start pulling with sleep %s\n", provider.Sport.Name, provider.PullInteval)
 	time.Sleep(provider.PullInteval)
