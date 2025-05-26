@@ -1,29 +1,30 @@
 package service
 
 import (
+	"context"
 	"kiddy-line-processor/internal/repo"
 )
 
 type SportService struct {
-	Name    string
+	Sport   string
 	storage repo.LineStorage
 }
 
-func NewSportService(name string) *SportService {
+func NewSportService(redis *repo.RedisStorage, sport string) *SportService {
 	return &SportService{
-		Name:    name,
-		storage: &repo.MemoryStorage{Sport: name},
+		Sport:   sport,
+		storage: repo.NewSportRepo(redis, sport),
 	}
 }
 
-func (s *SportService) GetLast() (repo.CoefItem, error) {
-	return s.storage.GetLast()
+func (s *SportService) GetLast(ctx context.Context) (repo.CoefItem, error) {
+	return s.storage.GetLast(ctx)
 }
 
-func (s *SportService) Save(coef float64) error {
-	return s.storage.Save(coef)
+func (s *SportService) Save(ctx context.Context, coef float64) error {
+	return s.storage.Save(ctx, coef)
 }
 
-func (s *SportService) Ready() bool {
-	return s.storage.Ready()
+func (s *SportService) Ready(ctx context.Context) bool {
+	return s.storage.Ready(ctx)
 }

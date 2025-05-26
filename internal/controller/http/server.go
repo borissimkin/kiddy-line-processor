@@ -20,13 +20,13 @@ func NewServer(addr string, service service.Line) *Server {
 }
 
 // todo: просто статус нужен
-type ReadyResponse 	struct {
+type ReadyResponse struct {
 	Ready bool `json:"ready"`
 }
 
-func (s *Server) readyHandle(w http.ResponseWriter, _ *http.Request) {
+func (s *Server) readyHandle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	isReady := s.Service.Ready()
+	isReady := s.Service.Ready(r.Context())
 
 	response := &ReadyResponse{
 		Ready: isReady,

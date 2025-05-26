@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -20,13 +21,13 @@ type LineSportProvider struct {
 	Synced      bool // todo: remove
 }
 
-func (p *LineSportProvider) Pull() error {
+func (p *LineSportProvider) Pull(ctx context.Context) error {
 	coef, err := p.fetch()
 	if err != nil {
 		return err
 	}
 
-	err = p.Sport.Save(coef)
+	err = p.Sport.Save(ctx, coef)
 	if err != nil {
 		return err
 	}
@@ -39,7 +40,7 @@ type SportProviderResponse struct {
 }
 
 func (p *LineSportProvider) fetch() (float64, error) {
-	resp, err := http.Get(fmt.Sprintf("http://localhost:8000/api/v1/lines/%s", p.Sport.Name))
+	resp, err := http.Get(fmt.Sprintf("http://localhost:8000/api/v1/lines/%s", p.Sport.Sport))
 	if err != nil {
 		return 0, err
 	}
@@ -60,7 +61,7 @@ func (p *LineSportProvider) fetch() (float64, error) {
 		return 0, err
 	}
 
-	coef := response.Lines[strings.ToUpper(p.Sport.Name)]
+	coef := response.Lines[strings.ToUpper(p.Sport.Sport)]
 
 	coefFloat, err := strconv.ParseFloat(coef, 64)
 
@@ -73,7 +74,7 @@ func (p *LineSportProvider) fetch() (float64, error) {
 
 // todo: вынести
 type Line interface {
-	Ready() bool
+	Ready(ctx context.Context) bool
 }
 
 type LineDependencies struct {
@@ -85,9 +86,9 @@ type LineService struct {
 	Deps *LineDependencies
 }
 
-func (s *LineService) Ready() bool {
+func (s *LineService) Ready(ctx context.Context) bool {
 	for _, sport := range s.Deps.Sports {
-		if !sport.Ready() {
+		if !sport.Ready(ctx) {
 			return false
 		}
 	}

@@ -1,10 +1,12 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	grpclines "kiddy-line-processor/internal/controller/grpc"
 	"kiddy-line-processor/internal/controller/http"
 	pb "kiddy-line-processor/internal/proto"
+	"kiddy-line-processor/internal/repo"
 	"kiddy-line-processor/internal/service"
 	"log"
 	"net"
@@ -36,11 +38,12 @@ func initLineSportProviders(config Config, sports SportsMap) []*service.LineSpor
 		{Sport: sports["soccer"], PullInteval: config.PullIntervals.Soccer},
 	}
 }
+
 // todo: to ticker
-func pullSportLine(provider *service.LineSportProvider, wg *sync.WaitGroup) error {
-	fmt.Printf("%s start pulling with sleep %s\n", provider.Sport.Name, provider.PullInteval)
+func pullSportLine(ctx context.Context, provider *service.LineSportProvider, wg *sync.WaitGroup) error {
+	fmt.Printf("%s start pulling with sleep %s\n", provider.Sport.Sport, provider.PullInteval)
 	time.Sleep(provider.PullInteval)
-	err := provider.Pull()
+	err := provider.Pull(ctx)
 
 	if err != nil {
 		fmt.Println(err)
@@ -50,31 +53,23 @@ func pullSportLine(provider *service.LineSportProvider, wg *sync.WaitGroup) erro
 		wg.Done()
 	}
 	provider.Synced = true
-	fmt.Printf("%s pulled!", provider.Sport.Name)
+	fmt.Printf("%s pulled!", provider.Sport.Sport)
 	return err
 }
 
-func runSportPulling(provider *service.LineSportProvider, wg *sync.WaitGroup) {
+func runSportPulling(ctx context.Context, provider *service.LineSportProvider, wg *sync.WaitGroup) {
 	for {
-		pullSportLine(provider, wg)
+		pullSportLine(ctx, provider, wg)
 	}
 }
 
-func runSportsPulling(providers []*service.LineSportProvider, wg *sync.WaitGroup) {
+func runSportsPulling(ctx context.Context, providers []*service.LineSportProvider, wg *sync.WaitGroup) {
 	for _, provider := range providers {
-		go runSportPulling(provider, wg)
+		go runSportPulling(ctx, provider, wg)
 	}
 }
 
 func Run() {
-	config := Config{
-		PullIntervals: PullInterval{
-			Baseball: time.Second * 1,
-			Soccer:   time.Second * 1,
-			Football: time.Second * 2,
-		},
-	}
-
 	names := []string{
 		"baseball",
 		"soccer",
@@ -83,8 +78,19 @@ func Run() {
 
 	sports := make(SportsMap)
 
+	config := Config{
+		PullIntervals: PullInterval{
+			Baseball: time.Second * 5,
+			Soccer:   time.Second * 2,
+			Football: time.Second * 1,
+		},
+	}
+
+	ctx := context.Background()
+	redis := repo.Init()
+
 	for _, name := range names {
-		sports[name] = service.NewSportService(name)
+		sports[name] = service.NewSportService(redis, name)
 	}
 
 	providers := initLineSportProviders(config, sports)
@@ -95,7 +101,7 @@ func Run() {
 
 	ready := service.NewReadyService(wg)
 
-	runSportsPulling(providers, wg)
+	runSportsPulling(ctx, providers, wg)
 
 	deps := &service.LineDependencies{
 		Sports:       sports,

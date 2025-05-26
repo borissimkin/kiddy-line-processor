@@ -22,16 +22,6 @@ func NewServer(deps *service.KiddyLineServiceDeps) *SportsLinesServer {
 	}
 }
 
-// func (s *SportsLinesServer) runSendDeltas(req *pb.SubscribeRequest) {
-
-// }
-
-// func (s *SportsLinesServer) sendLine(stream pb.SportsLinesService_SubscribeOnSportsLinesServer, ch <-chan pb.SubscribeRequest) error {
-// 	for {
-
-// 	}
-// }
-
 type PreviosRequest struct {
 	Sport []string
 }
@@ -59,7 +49,8 @@ func (s *SportsLinesServer) SubscribeOnSportsLines(stream pb.SportsLinesService_
 	var cancelSender context.CancelFunc
 
 	for {
-		stream.Context()
+		streamCtx := stream.Context()
+
 		req, err := stream.Recv()
 		if err == io.EOF {
 			return nil
@@ -78,7 +69,7 @@ func (s *SportsLinesServer) SubscribeOnSportsLines(stream pb.SportsLinesService_
 
 		if isSame(prevReq.Sport, req.Sport) {
 			for _, sport := range req.Sport {
-				coef, err := s.deps.Sports[sport].GetLast()
+				coef, err := s.deps.Sports[sport].GetLast(streamCtx)
 				if err != nil {
 					return err
 				}
@@ -86,7 +77,7 @@ func (s *SportsLinesServer) SubscribeOnSportsLines(stream pb.SportsLinesService_
 			}
 		} else {
 			for _, sport := range req.Sport {
-				coef, err := s.deps.Sports[sport].GetLast()
+				coef, err := s.deps.Sports[sport].GetLast(streamCtx)
 				if err != nil {
 					return err
 				}
@@ -116,7 +107,7 @@ func (s *SportsLinesServer) SubscribeOnSportsLines(stream pb.SportsLinesService_
 					}
 
 					for _, sport := range req.Sport {
-						coef, _ := s.deps.Sports[sport].GetLast()
+						coef, _ := s.deps.Sports[sport].GetLast(ctx)
 
 						resp.Sports[sport] = initialCoef[sport] - float32(coef.Coef)
 					}
