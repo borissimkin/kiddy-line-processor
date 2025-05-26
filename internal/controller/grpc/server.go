@@ -6,6 +6,7 @@ import (
 	"io"
 	pb "kiddy-line-processor/internal/proto"
 	"kiddy-line-processor/internal/service"
+	"math"
 	"time"
 )
 
@@ -24,6 +25,10 @@ func NewServer(deps *service.KiddyLineServiceDeps) *SportsLinesServer {
 
 type PreviosRequest struct {
 	Sport []string
+}
+
+func round(x float32) float32 {
+	return float32(math.Round(float64(x*100))) / 100
 }
 
 func isSame(oldSports []string, sports []string) bool {
@@ -73,7 +78,7 @@ func (s *SportsLinesServer) SubscribeOnSportsLines(stream pb.SportsLinesService_
 				if err != nil {
 					return err
 				}
-				resp.Sports[sport] = initialCoef[sport] - float32(coef.Coef)
+				resp.Sports[sport] = round(initialCoef[sport] - float32(coef.Coef))
 			}
 		} else {
 			for _, sport := range req.Sport {
@@ -81,8 +86,10 @@ func (s *SportsLinesServer) SubscribeOnSportsLines(stream pb.SportsLinesService_
 				if err != nil {
 					return err
 				}
-				resp.Sports[sport] = float32(coef.Coef)
-				initialCoef[sport] = float32(coef.Coef)
+
+				rounded := round(float32(coef.Coef))
+				resp.Sports[sport] = rounded
+				initialCoef[sport] = rounded
 			}
 		}
 
@@ -109,7 +116,7 @@ func (s *SportsLinesServer) SubscribeOnSportsLines(stream pb.SportsLinesService_
 					for _, sport := range req.Sport {
 						coef, _ := s.deps.Sports[sport].GetLast(ctx)
 
-						resp.Sports[sport] = initialCoef[sport] - float32(coef.Coef)
+						resp.Sports[sport] = round(initialCoef[sport] - float32(coef.Coef))
 					}
 
 					err := stream.Send(resp)
