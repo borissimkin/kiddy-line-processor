@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"kiddy-line-processor/config"
 	grpclines "kiddy-line-processor/internal/controller/grpc"
 	"kiddy-line-processor/internal/controller/http"
 	pb "kiddy-line-processor/internal/proto"
@@ -70,6 +71,9 @@ func runSportsPulling(ctx context.Context, providers []*service.LineSportProvide
 }
 
 func Run() {
+	cfg := config.InitConfig()
+
+	fmt.Println(cfg.GrpcAddr)
 	names := []string{
 		"baseball",
 		"soccer",
