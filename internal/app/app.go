@@ -3,7 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
-	"kiddy-line-processor/config"
+	cfg "kiddy-line-processor/config"
 	grpclines "kiddy-line-processor/internal/controller/grpc"
 	"kiddy-line-processor/internal/controller/http"
 	pb "kiddy-line-processor/internal/proto"
@@ -21,22 +21,11 @@ import (
 
 type SportsMap = map[string]*service.SportService
 
-// todo: to env
-type PullInterval struct {
-	Baseball time.Duration
-	Football time.Duration
-	Soccer   time.Duration
-}
-
-type Config struct {
-	PullIntervals PullInterval
-}
-
-func initLineSportProviders(config Config, sports SportsMap) []*service.LineSportProvider {
+func initLineSportProviders(config cfg.Config, sports SportsMap) []*service.LineSportProvider {
 	return []*service.LineSportProvider{
-		{Sport: sports["baseball"], PullInteval: config.PullIntervals.Baseball},
-		{Sport: sports["football"], PullInteval: config.PullIntervals.Football},
-		{Sport: sports["soccer"], PullInteval: config.PullIntervals.Soccer},
+		{Sport: sports["baseball"], PullInteval: config.PullInterval.Baseball},
+		{Sport: sports["football"], PullInteval: config.PullInterval.Football},
+		{Sport: sports["soccer"], PullInteval: config.PullInterval.Soccer},
 	}
 }
 
@@ -71,9 +60,8 @@ func runSportsPulling(ctx context.Context, providers []*service.LineSportProvide
 }
 
 func Run() {
-	cfg := config.InitConfig()
+	config := cfg.InitConfig()
 
-	fmt.Println(cfg.GrpcAddr)
 	names := []string{
 		"baseball",
 		"soccer",
@@ -81,14 +69,6 @@ func Run() {
 	}
 
 	sports := make(SportsMap)
-
-	config := Config{
-		PullIntervals: PullInterval{
-			Baseball: time.Second * 5,
-			Soccer:   time.Second * 2,
-			Football: time.Second * 1,
-		},
-	}
 
 	ctx := context.Background()
 	redis := repo.Init()
