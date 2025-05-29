@@ -4,10 +4,15 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"kiddy-line-processor/config"
 	pb "kiddy-line-processor/internal/proto"
 	"kiddy-line-processor/internal/service"
 	"math"
+	"net"
 	"time"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 // todo: добавить валидацию на имя спорта
@@ -17,10 +22,23 @@ type SportsLinesServer struct {
 	pb.UnimplementedSportsLinesServiceServer
 }
 
-func NewServer(deps *service.KiddyLineServiceDeps) *SportsLinesServer {
+func newServer(deps *service.KiddyLineServiceDeps) *SportsLinesServer {
 	return &SportsLinesServer{
 		deps: deps,
 	}
+}
+
+func Init(deps *service.KiddyLineServiceDeps, config config.GrpcConfig) error {
+	lis, err := net.Listen("tcp", config.Addr)
+	if err != nil {
+		return err
+	}
+
+	grpcServer := grpc.NewServer()
+	reflection.Register(grpcServer)
+	linesServer := newServer(deps)
+	pb.RegisterSportsLinesServiceServer(grpcServer, linesServer)
+	return grpcServer.Serve(lis)
 }
 
 type PreviosRequest struct {

@@ -16,9 +16,9 @@ type LineSportPuller interface {
 }
 
 type LineSportProvider struct {
-	Sport       *SportService
-	PullInteval time.Duration
-	Synced      bool // todo: remove
+	SportService *SportService
+	PullInteval  time.Duration
+	Synced       bool // todo: remove
 }
 
 func (p *LineSportProvider) Pull(ctx context.Context) error {
@@ -27,7 +27,7 @@ func (p *LineSportProvider) Pull(ctx context.Context) error {
 		return err
 	}
 
-	err = p.Sport.Save(ctx, coef)
+	err = p.SportService.Save(ctx, coef)
 	if err != nil {
 		return err
 	}
@@ -40,7 +40,7 @@ type SportProviderResponse struct {
 }
 
 func (p *LineSportProvider) fetch() (float64, error) {
-	resp, err := http.Get(fmt.Sprintf("http://localhost:8000/api/v1/lines/%s", p.Sport.Sport))
+	resp, err := http.Get(fmt.Sprintf("http://localhost:8000/api/v1/lines/%s", p.SportService.Sport))
 	if err != nil {
 		return 0, err
 	}
@@ -61,7 +61,7 @@ func (p *LineSportProvider) fetch() (float64, error) {
 		return 0, err
 	}
 
-	coef := response.Lines[strings.ToUpper(p.Sport.Sport)]
+	coef := response.Lines[strings.ToUpper(p.SportService.Sport)]
 
 	coefFloat, err := strconv.ParseFloat(coef, 64)
 

@@ -6,32 +6,26 @@ import (
 	cfg "kiddy-line-processor/config"
 	grpclines "kiddy-line-processor/internal/controller/grpc"
 	"kiddy-line-processor/internal/controller/http"
-	pb "kiddy-line-processor/internal/proto"
 	"kiddy-line-processor/internal/repo"
 	"kiddy-line-processor/internal/service"
 	"log"
-	"net"
 	"sync"
 	"time"
-
-	"google.golang.org/grpc/reflection"
-
-	"google.golang.org/grpc"
 )
 
 type SportsMap = map[string]*service.SportService
 
 func initLineSportProviders(config cfg.Config, sports SportsMap) []*service.LineSportProvider {
 	return []*service.LineSportProvider{
-		{Sport: sports["baseball"], PullInteval: config.PullInterval.Baseball},
-		{Sport: sports["football"], PullInteval: config.PullInterval.Football},
-		{Sport: sports["soccer"], PullInteval: config.PullInterval.Soccer},
+		{SportService: sports["baseball"], PullInteval: config.PullInterval.Baseball},
+		{SportService: sports["football"], PullInteval: config.PullInterval.Football},
+		{SportService: sports["soccer"], PullInteval: config.PullInterval.Soccer},
 	}
 }
 
 // todo: to ticker
 func pullSportLine(ctx context.Context, provider *service.LineSportProvider, wg *sync.WaitGroup) error {
-	fmt.Printf("%s start pulling with sleep %s\n", provider.Sport.Sport, provider.PullInteval)
+	fmt.Printf("%s start pulling with sleep %s\n", provider.SportService.Sport, provider.PullInteval)
 	time.Sleep(provider.PullInteval)
 	err := provider.Pull(ctx)
 
@@ -43,7 +37,7 @@ func pullSportLine(ctx context.Context, provider *service.LineSportProvider, wg 
 		wg.Done()
 	}
 	provider.Synced = true
-	fmt.Printf("%s pulled!", provider.Sport.Sport)
+	fmt.Printf("%s pulled!", provider.SportService.Sport)
 	return err
 }
 
@@ -104,17 +98,11 @@ func Run() {
 	ready.Wait()
 
 	fmt.Println("Иницализация gRPC")
-	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", 8081))
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
-	var opts []grpc.ServerOption
-	grpcServer := grpc.NewServer(opts...)
-	reflection.Register(grpcServer)
-	linesServer := grpclines.NewServer(&service.KiddyLineServiceDeps{
+	err := grpclines.Init(&service.KiddyLineServiceDeps{
 		Sports: sports,
-	})
-	pb.RegisterSportsLinesServiceServer(grpcServer, linesServer)
-	grpcServer.Serve(lis)
+	}, config.Grpc)
 
+	if err != nil {
+		log.Fatal(err)
+	}
 }

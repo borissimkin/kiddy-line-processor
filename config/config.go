@@ -18,20 +18,26 @@ import (
 type PullInterval struct {
 	Baseball time.Duration `env:"PULL_INTERVAL_BASEBALL" env-default:"1s"`
 	Soccer   time.Duration `env:"PULL_INTERVAL_SOCCER" env-default:"2s"`
-	Football time.Duration `env:"PULL_INTERVAL_BASEBALL" env-default:"3s"`
+	Football time.Duration `env:"PULL_INTERVAL_FOOTBALL" env-default:"3s"`
 }
 
-// type Config struct {
-// 	PullIntervals PullInterval
-// }
+type HttpConfig struct {
+	Addr string `env:"ADDR_HTTP" env-default:"localhost:8080"`
+}
+
+type GrpcConfig struct {
+	Addr string `env:"ADDR_GRPC" env-default:"localhost:8081"`
+}
+
+type LinesProviderConfig struct {
+	Addr string `env:"ADDR_LINES_PROVIDER" env-default:"localhost:8000"`
+}
 
 type Config struct {
-	HttpAddr     string `env:"ADDR_HTTP" env-default:"localhost:8080"`
-	GrpcAddr     string `env:"ADDR_GRPC" env-default:"localhost:8081"`
-	PullInterval PullInterval
-	// PullIntervalBaseball time.Duration `env:"PULL_INTERVAL_BASEBALL" env-default:"1s"`
-	// PullIntervalSoccer   time.Duration `env:"PULL_INTERVAL_SOCCER" env-default:"2s"`
-	// PullIntervalFootball time.Duration `env:"PULL_INTERVAL_BASEBALL" env-default:"3s"`
+	Http          HttpConfig
+	Grpc          GrpcConfig
+	PullInterval  PullInterval
+	LinesProvider LinesProviderConfig
 }
 
 func InitConfig() Config {
