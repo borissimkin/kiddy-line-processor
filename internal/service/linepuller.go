@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"kiddy-line-processor/config"
 	"net/http"
 	"strconv"
 	"strings"
@@ -16,9 +17,10 @@ type LineSportPuller interface {
 }
 
 type LineSportProvider struct {
+	cfg          config.LinesProviderConfig
 	SportService *SportService
 	PullInteval  time.Duration
-	Synced       bool // todo: remove
+	Synced       bool
 }
 
 func (p *LineSportProvider) Pull(ctx context.Context) error {

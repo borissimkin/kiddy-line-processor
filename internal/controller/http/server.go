@@ -2,20 +2,21 @@ package http
 
 import (
 	"encoding/json"
+	"kiddy-line-processor/config"
 	"kiddy-line-processor/internal/service"
 	"log"
 	"net/http"
 )
 
 type Server struct {
-	Addr    string
-	Service service.Line
+	cfg     config.HttpConfig
+	service service.Line
 }
 
-func NewServer(addr string, service service.Line) *Server {
+func NewServer(cfg config.HttpConfig, service service.Line) *Server {
 	return &Server{
-		Addr:    addr,
-		Service: service,
+		cfg:     cfg,
+		service: service,
 	}
 }
 
@@ -26,7 +27,7 @@ type ReadyResponse struct {
 
 func (s *Server) readyHandle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	isReady := s.Service.Ready(r.Context())
+	isReady := s.service.Ready(r.Context())
 
 	response := &ReadyResponse{
 		Ready: isReady,
@@ -38,5 +39,5 @@ func (s *Server) readyHandle(w http.ResponseWriter, r *http.Request) {
 func (s *Server) Run() {
 	http.HandleFunc("/ready", s.readyHandle)
 
-	log.Fatal(http.ListenAndServe(s.Addr, nil))
+	log.Fatal(http.ListenAndServe(s.cfg.Addr, nil))
 }

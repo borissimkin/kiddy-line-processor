@@ -1,5 +1,7 @@
 services:
   lines-provider:
+    env_file:
+      - ${ENV_FILE:-.env.example}
     image: antonboom/lines-provider
     expose:
       - 8000

@@ -65,7 +65,7 @@ func Run() {
 	sports := make(SportsMap)
 
 	ctx := context.Background()
-	redis := repo.Init()
+	redis := repo.Init(config.RedisConfig)
 
 	for _, name := range names {
 		sports[name] = service.NewSportService(redis, name)
@@ -90,7 +90,7 @@ func Run() {
 		Deps: deps,
 	}
 
-	httpServer := http.NewServer(":8080", lineService)
+	httpServer := http.NewServer(config.Http, lineService)
 
 	go httpServer.Run()
 
