@@ -39,5 +39,5 @@ func (s *Server) readyHandle(w http.ResponseWriter, r *http.Request) {
 func (s *Server) Run() {
 	http.HandleFunc("/ready", s.readyHandle)
 
-	log.Fatal(http.ListenAndServe(s.cfg.Addr, nil))
+	log.Fatal(http.ListenAndServe(s.cfg.Addr(), nil))
 }

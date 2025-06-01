@@ -17,9 +17,9 @@ type SportsMap = map[string]*service.SportService
 
 func initLineSportProviders(config cfg.Config, sports SportsMap) []*service.LineSportProvider {
 	return []*service.LineSportProvider{
-		{SportService: sports["baseball"], PullInteval: config.PullInterval.Baseball},
-		{SportService: sports["football"], PullInteval: config.PullInterval.Football},
-		{SportService: sports["soccer"], PullInteval: config.PullInterval.Soccer},
+		service.NewLineSportProvider(config.LinesProvider, sports["baseball"], config.PullInterval.Baseball),
+		service.NewLineSportProvider(config.LinesProvider, sports["soccer"], config.PullInterval.Soccer),
+		service.NewLineSportProvider(config.LinesProvider, sports["football"], config.PullInterval.Football),
 	}
 }
 

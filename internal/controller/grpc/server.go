@@ -29,7 +29,7 @@ func newServer(deps *service.KiddyLineServiceDeps) *SportsLinesServer {
 }
 
 func Init(deps *service.KiddyLineServiceDeps, config config.GrpcConfig) error {
-	lis, err := net.Listen("tcp", config.Addr)
+	lis, err := net.Listen("tcp", config.Addr())
 	if err != nil {
 		return err
 	}

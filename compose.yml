@@ -1,14 +1,35 @@
 services:
   lines-provider:
-    env_file:
-      - ${ENV_FILE:-.env.example}
+    env_file: .env
     image: antonboom/lines-provider
     expose:
-      - 8000
+      - ${LINES_PROVIDER_PORT}
     ports:
-      - 8000:8000
+      - ${LINES_PROVIDER_PORT}:${LINES_PROVIDER_PORT}
 
   redis:
+    env_file: .env
     image: 'redislabs/redismod'
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
     ports:
-      - '6379:6379'
+      - '${REDIS_PORT}:${REDIS_PORT}'
+
+  app:
+    build: .
+    ports:
+      - "${HTTP_PORT}:${HTTP_PORT}"
+      - "${GRPC_PORT}:${GRPC_PORT}"
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_healthy
+      lines-provider:
+        condition: service_started
+
+
+    restart: unless-stopped

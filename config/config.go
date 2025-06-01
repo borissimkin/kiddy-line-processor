@@ -2,18 +2,12 @@ package config
 
 import (
 	// this will automatically load .env file:
+	"fmt"
 	"time"
 
 	"github.com/ilyakaznacheev/cleanenv"
 	_ "github.com/joho/godotenv/autoload"
 )
-
-// ADDR_HTTP=localhost:8080
-// ADDR_GRPC=localhost:8081
-// PULL_INTERVAL_BASEBALL=1s
-// PULL_INTERVAL_SOCCER=2s
-// PULL_INTERVAL_FOOTBALL=3s
-// LOG_LEVEL=debug
 
 type PullInterval struct {
 	Baseball time.Duration `env:"PULL_INTERVAL_BASEBALL" env-default:"1s"`
@@ -29,15 +23,34 @@ type RedisConfig struct {
 }
 
 type HttpConfig struct {
-	Addr string `env:"ADDR_HTTP" env-default:"localhost:8080"`
+	Port int    `env:"HTTP_PORT" env-default:"8080"`
+	Host string `env:"HTTP_HOST" env-default:"localhost"`
 }
 
 type GrpcConfig struct {
-	Addr string `env:"ADDR_GRPC" env-default:"localhost:8081"`
+	Port int    `env:"GRPC_PORT" env-default:"8081"`
+	Host string `env:"GRPC_HOST" env-default:"localhost"`
+}
+
+func getAddr(host string, port int) string {
+	return fmt.Sprintf("%s:%v", host, port)
+}
+
+func (c *GrpcConfig) Addr() string {
+	return getAddr(c.Host, c.Port)
+}
+
+func (c *HttpConfig) Addr() string {
+	return getAddr(c.Host, c.Port)
+}
+
+func (c *LinesProviderConfig) Addr() string {
+	return getAddr(c.Host, c.Port)
 }
 
 type LinesProviderConfig struct {
-	Addr string `env:"ADDR_LINES_PROVIDER" env-default:"localhost:8000"`
+	Port int    `env:"LINES_PROVIDER_PORT" env-default:"8000"`
+	Host string `env:"LINES_PROVIDER_HOST" env-default:"localhost"`
 }
 
 type Config struct {

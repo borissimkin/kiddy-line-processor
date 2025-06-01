@@ -23,6 +23,18 @@ type LineSportProvider struct {
 	Synced       bool
 }
 
+func NewLineSportProvider(
+	cfg config.LinesProviderConfig,
+	sportService *SportService,
+	pullInteval time.Duration,
+) *LineSportProvider {
+	return &LineSportProvider{
+		cfg:          cfg,
+		SportService: sportService,
+		PullInteval:  pullInteval,
+	}
+}
+
 func (p *LineSportProvider) Pull(ctx context.Context) error {
 	coef, err := p.fetch()
 	if err != nil {
@@ -42,7 +54,9 @@ type SportProviderResponse struct {
 }
 
 func (p *LineSportProvider) fetch() (float64, error) {
-	resp, err := http.Get(fmt.Sprintf("http://localhost:8000/api/v1/lines/%s", p.SportService.Sport))
+	fmt.Println(p.cfg.Addr())
+	resp, err := http.Get(fmt.Sprintf("http://%s/api/v1/lines/%s", p.cfg.Addr(), p.SportService.Sport))
+
 	if err != nil {
 		return 0, err
 	}
