@@ -31,6 +31,7 @@ func pullSportLine(ctx context.Context, provider *service.LineSportProvider, wg 
 
 	if err != nil {
 		fmt.Println(err)
+		return err
 	}
 	if !provider.Synced {
 		fmt.Println("Done")
