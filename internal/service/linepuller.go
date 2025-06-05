@@ -109,5 +109,5 @@ func (s *LineService) Ready(ctx context.Context) bool {
 		}
 	}
 
-	return s.Deps.ReadyService.Ready
+	return s.Deps.ReadyService.IsReady()
 }

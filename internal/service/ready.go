@@ -2,22 +2,26 @@ package service
 
 import (
 	"sync"
+	"sync/atomic"
 )
 
 // todo: вынести сюда проверку доступности хранилища?
 type ReadyService struct {
 	Wg    *sync.WaitGroup
-	Ready bool
+	Ready atomic.Bool
 }
 
 func NewReadyService(wg *sync.WaitGroup) *ReadyService {
 	return &ReadyService{
-		Wg:    wg,
-		Ready: false,
+		Wg: wg,
 	}
 }
 
 func (s *ReadyService) Wait() {
 	s.Wg.Wait()
-	s.Ready = true
+	s.Ready.Store(true)
+}
+
+func (s *ReadyService) IsReady() bool {
+	return s.Ready.Load()
 }

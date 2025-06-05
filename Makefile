@@ -6,10 +6,16 @@ run:
 		echo ".env not found. Use .env.example..."; \
 		cp .env.example .env; \
 	fi
-	
+	docker-compose up --build
 
-up-lines-provider:
-	docker-compose up lines-provider
+tests:
+	go test ./...
+
+up-env:
+	docker-compose up -d lines-provider redis
+
+run-app:
+	go run ./cmd/main.go
 
 protoc:
 	@echo "Generating Go files"
