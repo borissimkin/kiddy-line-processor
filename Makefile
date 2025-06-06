@@ -11,6 +11,12 @@ run:
 tests:
 	go test ./...
 
+lint:
+	go vet ./...
+
+stop:
+	docker-compose stop
+
 up-env:
 	docker-compose up -d lines-provider redis
 
