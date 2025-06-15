@@ -4,4 +4,3 @@
 .vscode
 .env
 tmp/*
-*.pb.go
