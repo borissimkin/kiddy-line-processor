@@ -5,7 +5,6 @@ import (
 	"sync/atomic"
 )
 
-// todo: вынести сюда проверку доступности хранилища?
 type ReadyService struct {
 	Wg    *sync.WaitGroup
 	Ready atomic.Bool

@@ -32,6 +32,10 @@ type GrpcConfig struct {
 	Host string `env:"GRPC_HOST" env-default:"localhost"`
 }
 
+type LoggerConfig struct {
+	Level string `env:"LOG_LEVEL" env-default:"debug"`
+}
+
 func getAddr(host string, port int) string {
 	return fmt.Sprintf("%s:%v", host, port)
 }
@@ -58,7 +62,8 @@ type Config struct {
 	Grpc          GrpcConfig
 	PullInterval  PullInterval
 	LinesProvider LinesProviderConfig
-	RedisConfig   RedisConfig
+	Redis         RedisConfig
+	Logger        LoggerConfig
 }
 
 func InitConfig() Config {

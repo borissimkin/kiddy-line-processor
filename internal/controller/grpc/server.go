@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"kiddy-line-processor/config"
 	pb "kiddy-line-processor/internal/proto"
@@ -11,12 +10,11 @@ import (
 	"net"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
-// todo: добавить валидацию на имя спорта
-// todo: здесь нужен только сам сервис, пока напрямую через его зависимости пробуем
 type SportsLinesServer struct {
 	deps *service.KiddyLineServiceDeps
 	pb.UnimplementedSportsLinesServiceServer
@@ -31,6 +29,7 @@ func newServer(deps *service.KiddyLineServiceDeps) *SportsLinesServer {
 func Init(deps *service.KiddyLineServiceDeps, config config.GrpcConfig) error {
 	lis, err := net.Listen("tcp", config.Addr())
 	if err != nil {
+		logrus.Error(err)
 		return err
 	}
 
@@ -124,7 +123,6 @@ func (s *SportsLinesServer) SubscribeOnSportsLines(stream pb.SportsLinesService_
 			for {
 				select {
 				case <-ctx.Done():
-					fmt.Println("отправка остановлена")
 					return
 				case <-ticker.C:
 					resp := &pb.SubscribeResponse{
@@ -139,7 +137,7 @@ func (s *SportsLinesServer) SubscribeOnSportsLines(stream pb.SportsLinesService_
 
 					err := stream.Send(resp)
 					if err != nil {
-						fmt.Println("ошибка отправки:", err)
+						logrus.Error(err)
 						return
 					}
 				}

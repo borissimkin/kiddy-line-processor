@@ -57,6 +57,8 @@ func runSportsPulling(ctx context.Context, providers []*service.LineSportProvide
 func Run() {
 	config := cfg.InitConfig()
 
+	SetLogger(config.Logger.Level)
+
 	names := []string{
 		"baseball",
 		"soccer",
@@ -66,7 +68,7 @@ func Run() {
 	sports := make(SportsMap)
 
 	ctx := context.Background()
-	redis := repo.Init(config.RedisConfig)
+	redis := repo.Init(config.Redis)
 
 	for _, name := range names {
 		sports[name] = service.NewSportService(redis, name)
@@ -95,7 +97,6 @@ func Run() {
 
 	go httpServer.Run()
 
-	fmt.Println("Ждет реади")
 	ready.Wait()
 
 	fmt.Println("Иницализация gRPC")
