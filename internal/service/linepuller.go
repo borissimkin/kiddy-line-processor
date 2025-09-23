@@ -54,7 +54,6 @@ type SportProviderResponse struct {
 }
 
 func (p *LineSportProvider) fetch() (float64, error) {
-	fmt.Println(p.cfg.Addr())
 	resp, err := http.Get(fmt.Sprintf("http://%s/api/v1/lines/%s", p.cfg.Addr(), p.SportService.Sport))
 
 	if err != nil {
