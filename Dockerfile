@@ -8,7 +8,7 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o app ./cmd/main.go
+RUN go build -o app ./cmd/sportsline/main.go
 
 # Стадия запуска
 FROM alpine:latest
