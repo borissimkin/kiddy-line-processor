@@ -2,7 +2,7 @@ package http
 
 import (
 	"encoding/json"
-	"kiddy-line-processor/config"
+	"kiddy-line-processor/internal/config"
 	"kiddy-line-processor/internal/service"
 	"log"
 	"net/http"

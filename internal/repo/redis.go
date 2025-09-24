@@ -2,7 +2,7 @@ package repo
 
 import (
 	"fmt"
-	"kiddy-line-processor/config"
+	"kiddy-line-processor/internal/config"
 
 	"github.com/redis/go-redis/v9"
 )
