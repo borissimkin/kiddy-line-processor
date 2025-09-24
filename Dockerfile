@@ -1,4 +1,3 @@
-# Стадия сборки
 FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
@@ -8,15 +7,13 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o app ./cmd/sportsline/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o app ./cmd/sportsline
 
-# Стадия запуска
-FROM alpine:latest
+FROM scratch
 
-RUN apk add --no-cache ca-certificates
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
-WORKDIR /root/
+WORKDIR /root
 COPY --from=builder /app/app .
-COPY .env .
 
 CMD ["./app"]
