@@ -18,7 +18,7 @@ services:
     ports:
       - '${REDIS_PORT}:${REDIS_PORT}'
 
-  app:
+  sportsline:
     build: .
     ports:
       - "${HTTP_PORT}:${HTTP_PORT}"

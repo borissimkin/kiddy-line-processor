@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"kiddy-line-processor/config"
+	"kiddy-line-processor/internal/config"
 	"net/http"
 	"strconv"
 	"strings"

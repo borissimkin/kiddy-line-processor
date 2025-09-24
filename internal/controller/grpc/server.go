@@ -3,7 +3,7 @@ package grpc
 import (
 	"context"
 	"io"
-	"kiddy-line-processor/config"
+	"kiddy-line-processor/internal/config"
 	pb "kiddy-line-processor/internal/proto"
 	"kiddy-line-processor/internal/service"
 	"math"

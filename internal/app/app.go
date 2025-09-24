@@ -3,7 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
-	cfg "kiddy-line-processor/config"
+	cfg "kiddy-line-processor/internal/config"
 	grpclines "kiddy-line-processor/internal/controller/grpc"
 	"kiddy-line-processor/internal/controller/http"
 	"kiddy-line-processor/internal/repo"
@@ -25,7 +25,8 @@ func initLineSportProviders(config cfg.Config, sports SportsMap) []*service.Line
 
 // todo: to ticker
 
-/**
+/*
+*
 time.NewTimer https://stepik.org/lesson/1131161/step/1?unit=1142758
 */
 func pullSportLine(ctx context.Context, provider *service.LineSportProvider, wg *sync.WaitGroup) error {
