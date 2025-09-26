@@ -1,26 +1,24 @@
-package http
+package ready
 
 import (
 	"encoding/json"
 	"kiddy-line-processor/internal/config"
-	"kiddy-line-processor/internal/service"
 	"log"
 	"net/http"
 )
 
 type Server struct {
 	cfg     config.HttpConfig
-	service service.Line
+	service *LinesReadyService
 }
 
-func NewServer(cfg config.HttpConfig, service service.Line) *Server {
+func NewServer(cfg config.HttpConfig, service *LinesReadyService) *Server {
 	return &Server{
 		cfg:     cfg,
 		service: service,
 	}
 }
 
-// todo: просто статус нужен
 type ReadyResponse struct {
 	Ready bool `json:"ready"`
 }
