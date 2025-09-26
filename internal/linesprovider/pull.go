@@ -1,4 +1,4 @@
-package service
+package linesprovider
 
 import (
 	"context"
@@ -12,30 +12,26 @@ import (
 	"time"
 )
 
-type LineSportPuller interface {
-	Pull() error
-}
-
-type LineSportProvider struct {
+type LinesProvider struct {
 	cfg          config.LinesProviderConfig
-	SportService *SportService
+	SportService *LineService
 	PullInteval  time.Duration
 	Synced       bool
 }
 
-func NewLineSportProvider(
+func NewLinesProvider(
 	cfg config.LinesProviderConfig,
-	sportService *SportService,
+	sportService *LineService,
 	pullInteval time.Duration,
-) *LineSportProvider {
-	return &LineSportProvider{
+) *LinesProvider {
+	return &LinesProvider{
 		cfg:          cfg,
 		SportService: sportService,
 		PullInteval:  pullInteval,
 	}
 }
 
-func (p *LineSportProvider) Pull(ctx context.Context) error {
+func (p *LinesProvider) Pull(ctx context.Context) error {
 	coef, err := p.fetch()
 	if err != nil {
 		return err
@@ -49,11 +45,11 @@ func (p *LineSportProvider) Pull(ctx context.Context) error {
 	return nil
 }
 
-type SportProviderResponse struct {
+type LinesProviderResponse struct {
 	Lines map[string]string `json:"lines"`
 }
 
-func (p *LineSportProvider) fetch() (float64, error) {
+func (p *LinesProvider) fetch() (float64, error) {
 	resp, err := http.Get(fmt.Sprintf("http://%s/api/v1/lines/%s", p.cfg.Addr(), p.SportService.Sport))
 
 	if err != nil {
@@ -68,7 +64,7 @@ func (p *LineSportProvider) fetch() (float64, error) {
 		return 0, nil
 	}
 
-	var response SportProviderResponse
+	var response LinesProviderResponse
 
 	err = json.Unmarshal(body, &response)
 
@@ -85,28 +81,4 @@ func (p *LineSportProvider) fetch() (float64, error) {
 	}
 
 	return coefFloat, nil
-}
-
-// todo: вынести
-type Line interface {
-	Ready(ctx context.Context) bool
-}
-
-type LineDependencies struct {
-	Sports       map[string]*SportService
-	ReadyService *ReadyService
-}
-
-type LineService struct {
-	Deps *LineDependencies
-}
-
-func (s *LineService) Ready(ctx context.Context) bool {
-	for _, sport := range s.Deps.Sports {
-		if !sport.Ready(ctx) {
-			return false
-		}
-	}
-
-	return s.Deps.ReadyService.IsReady()
 }

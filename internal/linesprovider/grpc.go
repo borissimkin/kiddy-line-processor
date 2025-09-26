@@ -1,11 +1,10 @@
-package grpc
+package linesprovider
 
 import (
 	"context"
 	"io"
 	"kiddy-line-processor/internal/config"
 	pb "kiddy-line-processor/internal/proto"
-	"kiddy-line-processor/internal/service"
 	"math"
 	"net"
 	"time"
@@ -15,18 +14,22 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
+type SportsLinesServerDeps struct {
+	Lines map[string]*LineService
+}
+
 type SportsLinesServer struct {
-	deps *service.KiddyLineServiceDeps
+	deps *SportsLinesServerDeps
 	pb.UnimplementedSportsLinesServiceServer
 }
 
-func newServer(deps *service.KiddyLineServiceDeps) *SportsLinesServer {
+func newServer(deps *SportsLinesServerDeps) *SportsLinesServer {
 	return &SportsLinesServer{
 		deps: deps,
 	}
 }
 
-func Init(deps *service.KiddyLineServiceDeps, config config.GrpcConfig) error {
+func Init(deps *SportsLinesServerDeps, config config.GrpcConfig) error {
 	lis, err := net.Listen("tcp", config.Addr())
 	if err != nil {
 		logrus.Error(err)
@@ -62,9 +65,6 @@ func isSame(oldSports []string, sports []string) bool {
 	return true
 }
 
-// {"sport": "soccer", "sport": "football", "interval": "3s"}
-// {"sport": "soccer", "sport": "football", "interval": "1s"}
-// {"sport": "baseball", "sport": "football", "interval": "5s"}
 func (s *SportsLinesServer) SubscribeOnSportsLines(stream pb.SportsLinesService_SubscribeOnSportsLinesServer) error {
 	var prevReq PreviosRequest
 	initialCoef := make(map[string]float32)
@@ -91,7 +91,7 @@ func (s *SportsLinesServer) SubscribeOnSportsLines(stream pb.SportsLinesService_
 
 		if isSame(prevReq.Sport, req.Sport) {
 			for _, sport := range req.Sport {
-				coef, err := s.deps.Sports[sport].GetLast(streamCtx)
+				coef, err := s.deps.Lines[sport].GetLast(streamCtx)
 				if err != nil {
 					return err
 				}
@@ -99,7 +99,7 @@ func (s *SportsLinesServer) SubscribeOnSportsLines(stream pb.SportsLinesService_
 			}
 		} else {
 			for _, sport := range req.Sport {
-				coef, err := s.deps.Sports[sport].GetLast(streamCtx)
+				coef, err := s.deps.Lines[sport].GetLast(streamCtx)
 				if err != nil {
 					return err
 				}
@@ -130,7 +130,7 @@ func (s *SportsLinesServer) SubscribeOnSportsLines(stream pb.SportsLinesService_
 					}
 
 					for _, sport := range req.Sport {
-						coef, _ := s.deps.Sports[sport].GetLast(ctx)
+						coef, _ := s.deps.Lines[sport].GetLast(ctx)
 
 						resp.Sports[sport] = round(initialCoef[sport] - float32(coef.Coef))
 					}
