@@ -2,7 +2,10 @@ package linesprovider
 
 import (
 	"context"
+	"sync/atomic"
 )
+
+type LineServiceMap = map[string]*LineService
 
 type CoefItem struct {
 	Id   string
@@ -12,12 +15,12 @@ type CoefItem struct {
 type LineRepoInterface interface {
 	Save(ctx context.Context, coef float64) error
 	GetLast(ctx context.Context) (CoefItem, error)
-	Ready(ctx context.Context) bool
 }
 
 type LineService struct {
-	Sport string
-	repo  LineRepoInterface
+	Sport  string
+	synced atomic.Bool
+	repo   LineRepoInterface
 }
 
 func NewLineService(sport string, repo LineRepoInterface) *LineService {
@@ -35,6 +38,19 @@ func (s *LineService) Save(ctx context.Context, coef float64) error {
 	return s.repo.Save(ctx, coef)
 }
 
-func (s *LineService) Ready(ctx context.Context) bool {
-	return s.repo.Ready(ctx)
+func NewLineServiceMap(sportNames []string, repoFactory func(string) LineRepoInterface) LineServiceMap {
+	lines := make(LineServiceMap)
+	for _, sport := range sportNames {
+		lines[sport] = NewLineService(sport, repoFactory(sport))
+	}
+
+	return lines
+}
+
+func (s *LineService) SetSynced(val bool) {
+	s.synced.Store(val)
+}
+
+func (s *LineService) Synced() bool {
+	return s.synced.Load()
 }
