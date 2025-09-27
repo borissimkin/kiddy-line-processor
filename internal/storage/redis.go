@@ -1,10 +1,12 @@
 package storage
 
 import (
+	"context"
 	"fmt"
 	"kiddy-line-processor/internal/config"
 
 	"github.com/redis/go-redis/v9"
+	"github.com/sirupsen/logrus"
 )
 
 type RedisStorage struct {
@@ -21,4 +23,13 @@ func Init(cfg config.RedisConfig) *RedisStorage {
 	return &RedisStorage{
 		client,
 	}
+}
+
+func (r *RedisStorage) Ready(ctx context.Context) bool {
+	if err := r.Ping(ctx).Err(); err != nil {
+		logrus.Error(err)
+		return false
+	}
+
+	return true
 }

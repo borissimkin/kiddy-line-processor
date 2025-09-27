@@ -1,9 +1,10 @@
-package linesprovider
+package linesprocessor
 
 import (
 	"context"
 	"io"
 	"kiddy-line-processor/internal/config"
+	"kiddy-line-processor/internal/linesprovider"
 	pb "kiddy-line-processor/internal/proto"
 	"math"
 	"net"
@@ -14,22 +15,23 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-type SportsLinesServerDeps struct {
-	Lines map[string]*LineService
+// todo: в пакет line processor
+type ServerDeps struct {
+	Lines linesprovider.LineServiceMap
 }
 
 type SportsLinesServer struct {
-	deps *SportsLinesServerDeps
+	deps *ServerDeps
 	pb.UnimplementedSportsLinesServiceServer
 }
 
-func newServer(deps *SportsLinesServerDeps) *SportsLinesServer {
+func newServer(deps *ServerDeps) *SportsLinesServer {
 	return &SportsLinesServer{
 		deps: deps,
 	}
 }
 
-func Init(deps *SportsLinesServerDeps, config config.GrpcConfig) error {
+func Init(deps *ServerDeps, config config.GrpcConfig) error {
 	lis, err := net.Listen("tcp", config.Addr())
 	if err != nil {
 		logrus.Error(err)
@@ -56,7 +58,7 @@ func isSame(oldSports []string, sports []string) bool {
 		return false
 	}
 
-	for index, _ := range oldSports {
+	for index := range oldSports {
 		if oldSports[index] != sports[index] {
 			return false
 		}

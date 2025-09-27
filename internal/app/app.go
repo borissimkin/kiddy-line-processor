@@ -2,107 +2,59 @@ package app
 
 import (
 	"context"
-	"fmt"
 	cfg "kiddy-line-processor/internal/config"
-	grpclines "kiddy-line-processor/internal/controller/grpc"
-	"kiddy-line-processor/internal/controller/http"
-	"kiddy-line-processor/internal/repo"
-	"kiddy-line-processor/internal/service"
-	"log"
-	"sync"
-	"time"
+	"kiddy-line-processor/internal/linesprocessor"
+	"kiddy-line-processor/internal/linesprovider"
+	"kiddy-line-processor/internal/ready"
+	"kiddy-line-processor/internal/storage"
+
+	log "github.com/sirupsen/logrus"
 )
-// todo: разгрести этот файл
-type SportsMap = map[string]*service.SportService
-
-func initLineSportProviders(config cfg.Config, sports SportsMap) []*service.LineSportProvider {
-	return []*service.LineSportProvider{
-		service.NewLineSportProvider(config.LinesProvider, sports["baseball"], config.PullInterval.Baseball),
-		service.NewLineSportProvider(config.LinesProvider, sports["soccer"], config.PullInterval.Soccer),
-		service.NewLineSportProvider(config.LinesProvider, sports["football"], config.PullInterval.Football),
-	}
-}
-
-func pullSportLine(ctx context.Context, provider *service.LineSportProvider, wg *sync.WaitGroup) error {
-	fmt.Printf("%s start pulling with sleep %s\n", provider.SportService.Sport, provider.PullInteval)
-	time.Sleep(provider.PullInteval)
-	err := provider.Pull(ctx)
-
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
-	if !provider.Synced {
-		fmt.Println("Done")
-		wg.Done()
-	}
-	provider.Synced = true
-	fmt.Printf("%s pulled!", provider.SportService.Sport)
-	return err
-}
-
-func runSportPulling(ctx context.Context, provider *service.LineSportProvider, wg *sync.WaitGroup) {
-	for {
-		pullSportLine(ctx, provider, wg)
-	}
-}
-
-func runSportsPulling(ctx context.Context, providers []*service.LineSportProvider, wg *sync.WaitGroup) {
-	for _, provider := range providers {
-		go runSportPulling(ctx, provider, wg)
-	}
-}
 
 func Run() {
 	config := cfg.InitConfig()
 
 	SetLogger(config.Logger.Level)
 
-	names := []string{
+	sportNames := []string{
 		"baseball",
 		"soccer",
 		"football",
 	}
 
-	sports := make(SportsMap)
+	redis := storage.Init(config.Redis)
 
-	ctx := context.Background()
-	redis := repo.Init(config.Redis)
-
-	for _, name := range names {
-		sports[name] = service.NewSportService(redis, name)
+	repoFactory := func(sport string) linesprovider.LineRepoInterface {
+		return linesprovider.NewSportRepo(redis, sport)
 	}
 
-	providers := initLineSportProviders(config, sports)
+	lineServiceMap := linesprovider.NewLineServiceMap(sportNames, repoFactory)
 
-	wg := new(sync.WaitGroup)
-
-	wg.Add(len(providers))
-
-	ready := service.NewReadyService(wg)
-
-	runSportsPulling(ctx, providers, wg)
-
-	deps := &service.LineDependencies{
-		Sports:       sports,
-		ReadyService: ready,
+	lineSyncedCheckers := make([]ready.LineSyncedChecker, 0)
+	for _, v := range lineServiceMap {
+		lineSyncedCheckers = append(lineSyncedCheckers, v)
 	}
 
-	lineService := &service.LineService{
-		Deps: deps,
-	}
+	readyService := ready.NewLinesReadyService(lineSyncedCheckers, redis)
+	readyService.Wg.Add(len(lineSyncedCheckers))
 
-	httpServer := http.NewServer(config.Http, lineService)
-
+	httpServer := ready.NewServer(config.Http, readyService)
 	go httpServer.Run()
 
-	ready.Wait()
+	ctx, _ := context.WithCancel(context.Background()) // todo: cancel
+	linesPullService := linesprovider.InitLinesPullService(config, lineServiceMap)
+	linesPullService.StartPulling(ctx, readyService.Wg)
 
-	fmt.Println("Иницализация gRPC")
-	err := grpclines.Init(&service.KiddyLineServiceDeps{
-		Sports: sports,
-	}, config.Grpc)
+	log.Info("wait for lines syncing...")
+	readyService.Wait()
+	log.Info("gRPC initializing...")
 
+	deps := &linesprocessor.ServerDeps{
+		Lines: lineServiceMap,
+	}
+	err := linesprocessor.Init(deps, config.Grpc)
+
+	// todo: graceful shutdown
 	if err != nil {
 		log.Fatal(err)
 	}
