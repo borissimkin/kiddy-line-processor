@@ -15,18 +15,17 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-// todo: в пакет line processor
 type ServerDeps struct {
 	Lines linesprovider.LineServiceMap
 }
 
-type SportsLinesServer struct {
+type LinesProcessorServer struct {
 	deps *ServerDeps
 	pb.UnimplementedSportsLinesServiceServer
 }
 
-func newServer(deps *ServerDeps) *SportsLinesServer {
-	return &SportsLinesServer{
+func newServer(deps *ServerDeps) *LinesProcessorServer {
+	return &LinesProcessorServer{
 		deps: deps,
 	}
 }
@@ -67,10 +66,43 @@ func isSame(oldSports []string, sports []string) bool {
 	return true
 }
 
-func (s *SportsLinesServer) SubscribeOnSportsLines(stream pb.SportsLinesService_SubscribeOnSportsLinesServer) error {
+func (s *LinesProcessorServer) getCoefDelta(a, b float32) float32 {
+	return round(a - b)
+}
+
+func (s *LinesProcessorServer) SendStream(ctx context.Context, stream pb.SportsLinesService_SubscribeOnSportsLinesServer, interval time.Duration, sports []string, initialCoef map[string]float32) {
+	ticker := time.NewTicker(interval)
+
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			resp := &pb.SubscribeResponse{
+				Sports: make(map[string]float32),
+			}
+
+			for _, sport := range sports {
+				coef, _ := s.deps.Lines[sport].GetLast(ctx)
+
+				resp.Sports[sport] = s.getCoefDelta(initialCoef[sport], float32(coef.Coef))
+			}
+
+			err := stream.Send(resp)
+			if err != nil {
+				logrus.Error(err)
+				return
+			}
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func (s *LinesProcessorServer) SubscribeOnSportsLines(stream pb.SportsLinesService_SubscribeOnSportsLinesServer) error {
 	var prevReq PreviosRequest
-	initialCoef := make(map[string]float32)
 	var cancelSender context.CancelFunc
+	initialCoef := make(map[string]float32)
 
 	for {
 		streamCtx := stream.Context()
@@ -97,7 +129,7 @@ func (s *SportsLinesServer) SubscribeOnSportsLines(stream pb.SportsLinesService_
 				if err != nil {
 					return err
 				}
-				resp.Sports[sport] = round(initialCoef[sport] - float32(coef.Coef))
+				resp.Sports[sport] = s.getCoefDelta(initialCoef[sport], float32(coef.Coef))
 			}
 		} else {
 			for _, sport := range req.Sport {
@@ -119,31 +151,6 @@ func (s *SportsLinesServer) SubscribeOnSportsLines(stream pb.SportsLinesService_
 
 		prevReq.Sport = req.Sport
 
-		go func(req *pb.SubscribeRequest, ctx context.Context) {
-			ticker := time.NewTicker(req.Interval.AsDuration())
-
-			for {
-				select {
-				case <-ctx.Done():
-					return
-				case <-ticker.C:
-					resp := &pb.SubscribeResponse{
-						Sports: make(map[string]float32),
-					}
-
-					for _, sport := range req.Sport {
-						coef, _ := s.deps.Lines[sport].GetLast(ctx)
-
-						resp.Sports[sport] = round(initialCoef[sport] - float32(coef.Coef))
-					}
-
-					err := stream.Send(resp)
-					if err != nil {
-						logrus.Error(err)
-						return
-					}
-				}
-			}
-		}(req, ctx)
+		go s.SendStream(ctx, stream, req.Interval.AsDuration(), req.Sport, initialCoef)
 	}
 }
