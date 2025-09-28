@@ -9,7 +9,7 @@ type LineServiceMap = map[string]*LineService
 
 type CoefItem struct {
 	Id   string
-	Coef float64
+	Coef float64 // todo: float32?
 }
 
 type LineRepoInterface interface {
