@@ -52,5 +52,8 @@ func Run() {
 	deps := &linesprocessor.ServerDeps{
 		Lines: lineServiceMap,
 	}
-	linesprocessor.Init(deps, config.Grpc)
+
+	linesProcessorSrv := linesprocessor.NewLinesProcessorServer(deps)
+	log.Info("gRPC run...")
+	linesProcessorSrv.Run(config.Grpc.Addr())
 }
