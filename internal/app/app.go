@@ -41,7 +41,7 @@ func Run() {
 	httpServer := ready.NewServer(config.Http, readyService)
 	go httpServer.Run()
 
-	ctx, _ := context.WithCancel(context.Background()) // todo: cancel
+	ctx := context.Background()
 	linesPullService := linesprovider.InitLinesPullService(config, lineServiceMap)
 	linesPullService.StartPulling(ctx, readyService.Wg)
 
@@ -52,10 +52,5 @@ func Run() {
 	deps := &linesprocessor.ServerDeps{
 		Lines: lineServiceMap,
 	}
-	err := linesprocessor.Init(deps, config.Grpc)
-
-	// todo: graceful shutdown
-	if err != nil {
-		log.Fatal(err)
-	}
+	linesprocessor.Init(deps, config.Grpc)
 }

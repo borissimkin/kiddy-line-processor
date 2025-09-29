@@ -1,23 +1,3 @@
-# todo
-
-[x] протобаф файлы вынести в папку api
-[x] cmd добавить вложеность для сервиса
-[x] добавить docs
-[x] рефактор мейкфайла
-[x] рефактор докерфайла
-[x] разбить проект на фичи а не по функциональному признаку
-[x] вынести интерфейс стораджа из модуля с реализацией
-[x] рефактор докер композа (переименование сервиса приложения)
-[x] рефактор grpc сервера 
-[x] добавить логирование
-[] оформить ридми (ссылка на тз, объяснить структуру модулей)
-сделать пресеты команд для проверки функционала
-// {"sport": "soccer", "sport": "football", "interval": "3s"}
-// {"sport": "soccer", "sport": "football", "interval": "1s"}
-// {"sport": "baseball", "sport": "football", "interval": "5s"}
-
-тесты
-
 # Kiddy Line Processor
 
 ![Go Version](https://img.shields.io/badge/Go-1.23.1-blue)
@@ -61,7 +41,7 @@ curl localhost:8080/ready
 ```
 Пример успешного ответа:
 ```json
-{"status":"ok"}
+{"ready":true}
 ```
 
 ### Подписка на коэффициенты (gRPC streaming)
@@ -83,18 +63,9 @@ grpcurl -plaintext -d @ localhost:8081 proto.SportsLinesService.SubscribeOnSport
 Пример ответа от сервиса:
 ```json
 {
-  "sport": "soccer",
-  "coeff": 1.85,
-  "updated_at": "2025-09-29T12:34:56Z"
+  "sports": {
+    "football": -0.05,
+    "soccer": 0.87
+  }
 }
 ```
-
----
-
-## Технологии
-- Go
-- Redis
-- gRPC
-- HTTP
-
-
