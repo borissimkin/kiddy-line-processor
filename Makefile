@@ -37,3 +37,18 @@ protoc:
   	--go_out=internal/proto --go_opt=paths=source_relative \
   	--go-grpc_out=internal/proto --go-grpc_opt=paths=source_relative \
   	api/*.proto
+
+.PHONY: coverage-html
+cover-html: ### run test with coverage and open html report
+	go test -coverprofile=coverage.out ./...
+	go tool cover -html=coverage.out
+	rm coverage.out
+
+.PHONY: coverage
+cover: ### run test with coverage
+	go test -coverprofile=coverage.out ./...
+	go tool cover -func=coverage.out
+	rm coverage.out
+
+mockgen:
+	mockgen -source=internal/ready/service.go -destination=internal/ready/mocks/service.go -package=readymocks
