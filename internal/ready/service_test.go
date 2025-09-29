@@ -4,6 +4,7 @@ import (
 	"context"
 	readymocks "kiddy-line-processor/internal/ready/mocks"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -73,24 +74,94 @@ func TestReadyService_Ready(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockLines := make([]*readymocks.MockLineSyncedChecker, 3)
-			toPassMockLines := make([]LineSyncedChecker, 3)
+			countLines := 3
+			mockLines := make([]*readymocks.MockLineSyncedChecker, countLines)
+			lineCheckers := make([]LineSyncedChecker, countLines)
 			for i := range mockLines {
 				ctrl := gomock.NewController(t)
 				defer ctrl.Finish()
 
 				checker := readymocks.NewMockLineSyncedChecker(ctrl)
 				mockLines[i] = checker
-				toPassMockLines[i] = checker
+				lineCheckers[i] = checker
 			}
 
 			mockStorageChecker := readymocks.NewMockStorageReadyChecker(ctrl)
 
 			tc.mockBehavior(mockLines, mockStorageChecker, tc.args)
-			service := NewLinesReadyService(toPassMockLines, mockStorageChecker)
+			service := NewLinesReadyService(lineCheckers, mockStorageChecker)
 
 			got := service.Ready(tc.args.ctx)
 			assert.Equal(t, tc.want, got)
+		})
+	}
+}
+
+func TestReadyService_Wait(t *testing.T) {
+	type args struct {
+		ctx context.Context
+	}
+
+	type MockBehavior func(l []*readymocks.MockLineSyncedChecker, s *readymocks.MockStorageReadyChecker, args args)
+
+	testCases := []struct {
+		name         string
+		mockBehavior MockBehavior
+		args         args
+		want         bool
+	}{
+		{
+			name: "should wait and set ready true",
+			mockBehavior: func(l []*readymocks.MockLineSyncedChecker, s *readymocks.MockStorageReadyChecker, args args) {
+				s.EXPECT().Ready(args.ctx).AnyTimes().Return(true)
+				for _, checker := range l {
+					checker.EXPECT().Synced().AnyTimes().Return(true)
+				}
+			},
+			args: args{
+				ctx: context.Background(),
+			},
+			want: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			countLines := 3
+			mockLines := make([]*readymocks.MockLineSyncedChecker, countLines)
+			lineCheckers := make([]LineSyncedChecker, countLines)
+			for i := range mockLines {
+				ctrl := gomock.NewController(t)
+				defer ctrl.Finish()
+
+				checker := readymocks.NewMockLineSyncedChecker(ctrl)
+				mockLines[i] = checker
+				lineCheckers[i] = checker
+			}
+
+			mockStorageChecker := readymocks.NewMockStorageReadyChecker(ctrl)
+
+			tc.mockBehavior(mockLines, mockStorageChecker, tc.args)
+			service := NewLinesReadyService(lineCheckers, mockStorageChecker)
+
+			service.Wg.Add(countLines)
+
+			now := time.Now()
+			go func() {
+				time.Sleep(10 * time.Millisecond)
+				for range countLines {
+					service.Wg.Done()
+				}
+			}()
+
+			service.Wait()
+			after := time.Now()
+
+			assert.True(t, after.Sub(now) >= 10*time.Millisecond)
+			assert.Equal(t, tc.want, service.IsReady())
 		})
 	}
 }
