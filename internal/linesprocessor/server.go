@@ -3,7 +3,6 @@ package linesprocessor
 import (
 	"context"
 	"io"
-	"kiddy-line-processor/internal/config"
 	"kiddy-line-processor/internal/linesprovider"
 	pb "kiddy-line-processor/internal/proto"
 	"math"
@@ -21,27 +20,33 @@ type ServerDeps struct {
 
 type LinesProcessorServer struct {
 	deps *ServerDeps
+	srv  *grpc.Server
 	pb.UnimplementedSportsLinesServiceServer
 }
 
-func newServer(deps *ServerDeps) *LinesProcessorServer {
+func NewLinesProcessorServer(deps *ServerDeps) *LinesProcessorServer {
+	grpcServer := grpc.NewServer()
+
 	return &LinesProcessorServer{
 		deps: deps,
+		srv:  grpcServer,
 	}
 }
 
-func Init(deps *ServerDeps, config config.GrpcConfig) error {
-	lis, err := net.Listen("tcp", config.Addr())
+func (s *LinesProcessorServer) Run(addr string) {
+	lis, err := net.Listen("tcp", addr)
 	if err != nil {
-		log.Error(err)
-		return err
+		log.Fatal(err)
+		return
 	}
 
-	grpcServer := grpc.NewServer()
-	reflection.Register(grpcServer)
-	linesServer := newServer(deps)
-	pb.RegisterSportsLinesServiceServer(grpcServer, linesServer)
-	return grpcServer.Serve(lis)
+	reflection.Register(s.srv)
+	pb.RegisterSportsLinesServiceServer(s.srv, s)
+
+	err = s.srv.Serve(lis)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 type PreviosRequest struct {

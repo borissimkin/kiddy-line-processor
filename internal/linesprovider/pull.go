@@ -52,7 +52,7 @@ func (p *LinesProvider) Pull(ctx context.Context) error {
 func (p *LinesProvider) StartPulling(ctx context.Context, wg *sync.WaitGroup) {
 	ctxLogger := log.WithFields(log.Fields{
 		"provider": p.lineService.Sport,
-		"interval": p.pullInterval,
+		"interval": p.pullInterval.String(),
 	})
 
 	ctxLogger.Info("Start pulling")
