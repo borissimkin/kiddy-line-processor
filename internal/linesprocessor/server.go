@@ -10,7 +10,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -33,7 +33,7 @@ func newServer(deps *ServerDeps) *LinesProcessorServer {
 func Init(deps *ServerDeps, config config.GrpcConfig) error {
 	lis, err := net.Listen("tcp", config.Addr())
 	if err != nil {
-		logrus.Error(err)
+		log.Error(err)
 		return err
 	}
 
@@ -90,7 +90,7 @@ func (s *LinesProcessorServer) SendStream(ctx context.Context, stream pb.SportsL
 
 			err := stream.Send(resp)
 			if err != nil {
-				logrus.Error(err)
+				log.Error(err)
 				return
 			}
 		case <-ctx.Done():
