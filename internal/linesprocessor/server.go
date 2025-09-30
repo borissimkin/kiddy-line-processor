@@ -149,7 +149,10 @@ func (s *LinesProcessorServer) SubscribeOnSportsLines(stream pb.SportsLinesServi
 			}
 		}
 
-		stream.Send(resp)
+		err = stream.Send(resp)
+		if err != nil {
+			log.Error(err)
+		}
 
 		ctx, cancel := context.WithCancel(context.Background())
 		cancelSender = cancel

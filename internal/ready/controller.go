@@ -3,8 +3,9 @@ package ready
 import (
 	"encoding/json"
 	"kiddy-line-processor/internal/config"
-	"log"
 	"net/http"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type Server struct {
@@ -31,7 +32,10 @@ func (s *Server) readyHandle(w http.ResponseWriter, r *http.Request) {
 		Ready: isReady,
 	}
 
-	json.NewEncoder(w).Encode(response)
+	err := json.NewEncoder(w).Encode(response)
+	if err != nil {
+		log.Error(err)
+	}
 }
 
 func (s *Server) Run() {

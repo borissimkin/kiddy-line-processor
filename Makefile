@@ -16,7 +16,7 @@ tests:
 
 .PHONY: lint
 lint:
-	go vet -v ./...
+	golangci-lint run ./...
 
 .PHONY: stop
 stop:
