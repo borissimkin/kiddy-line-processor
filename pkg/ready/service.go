@@ -6,10 +6,11 @@ import (
 	"sync/atomic"
 )
 
-type StorageReadyChecker interface {
+type storageReadyChecker interface {
 	Ready(ctx context.Context) bool
 }
 
+// LineSyncedChecker check line is synced.
 type LineSyncedChecker interface {
 	Synced() bool
 }
@@ -18,14 +19,15 @@ type LinesReadyService struct {
 	Wg             *sync.WaitGroup
 	ready          atomic.Bool
 	Lines          []LineSyncedChecker
-	storageChecker StorageReadyChecker
+	storageChecker storageReadyChecker
 }
 
-func NewLinesReadyService(lines []LineSyncedChecker, storageChecker StorageReadyChecker) *LinesReadyService {
+func NewLinesReadyService(lines []LineSyncedChecker, storageChecker storageReadyChecker) *LinesReadyService {
 	return &LinesReadyService{
 		Wg:             &sync.WaitGroup{},
 		Lines:          lines,
 		storageChecker: storageChecker,
+		ready:          atomic.Bool{},
 	}
 }
 
@@ -43,11 +45,13 @@ func (s *LinesReadyService) Ready(ctx context.Context) bool {
 	return true
 }
 
+// Wait waits for lines syncing.
 func (s *LinesReadyService) Wait() {
 	s.Wg.Wait()
 	s.ready.Store(true)
 }
 
+// IsReady  .
 func (s *LinesReadyService) IsReady() bool {
 	return s.ready.Load()
 }

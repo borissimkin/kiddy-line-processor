@@ -7,11 +7,11 @@ import (
 )
 
 func SetLogger(level string) {
-	logrusLevel, err := logrus.ParseLevel(level)
+	logLevel, err := logrus.ParseLevel(level)
 	if err != nil {
 		logrus.SetLevel(logrus.DebugLevel)
 	} else {
-		logrus.SetLevel(logrusLevel)
+		logrus.SetLevel(logLevel)
 	}
 
 	logrus.SetFormatter(&logrus.JSONFormatter{

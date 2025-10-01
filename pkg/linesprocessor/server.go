@@ -3,9 +3,10 @@ package linesprocessor
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
-	"kiddy-line-processor/internal/linesprovider"
-	pb "kiddy-line-processor/internal/proto"
+	"kiddy-line-processor/pkg/linesprovider"
+	pb "kiddy-line-processor/pkg/proto"
 	"math"
 	"net"
 	"time"
@@ -20,9 +21,10 @@ type ServerDeps struct {
 }
 
 type LinesProcessorServer struct {
+	pb.UnimplementedSportsLinesServiceServer
+
 	deps *ServerDeps
 	srv  *grpc.Server
-	pb.UnimplementedSportsLinesServiceServer
 }
 
 func NewLinesProcessorServer(deps *ServerDeps) *LinesProcessorServer {
@@ -51,12 +53,14 @@ func (s *LinesProcessorServer) Run(addr string) {
 	}
 }
 
-type PreviosRequest struct {
+type PreviousRequest struct {
 	Sport []string
 }
 
 func round(x float32) float32 {
-	return float32(math.Round(float64(x*100))) / 100
+	const roundPrecision = 100
+
+	return float32(math.Round(float64(x*roundPrecision))) / roundPrecision
 }
 
 func isSame(oldSports []string, sports []string) bool {
@@ -71,10 +75,6 @@ func isSame(oldSports []string, sports []string) bool {
 	}
 
 	return true
-}
-
-func (s *LinesProcessorServer) getCoefDelta(a, b float32) float32 {
-	return round(a - b)
 }
 
 func (s *LinesProcessorServer) SendStream(ctx context.Context, stream pb.SportsLinesService_SubscribeOnSportsLinesServer, interval time.Duration, sports []string, initialCoef map[string]float32) {
@@ -107,9 +107,10 @@ func (s *LinesProcessorServer) SendStream(ctx context.Context, stream pb.SportsL
 	}
 }
 
+// SubscribeOnSportsLines subscribe to receiving processed sports coefficients.
 func (s *LinesProcessorServer) SubscribeOnSportsLines(stream pb.SportsLinesService_SubscribeOnSportsLinesServer) error {
 	var (
-		prevReq      PreviosRequest
+		prevReq      PreviousRequest
 		cancelSender context.CancelFunc
 	)
 
@@ -124,7 +125,7 @@ func (s *LinesProcessorServer) SubscribeOnSportsLines(stream pb.SportsLinesServi
 		}
 
 		if err != nil {
-			return err
+			return fmt.Errorf("error receiving previous request: %w", err)
 		}
 
 		if cancelSender != nil {
@@ -139,7 +140,7 @@ func (s *LinesProcessorServer) SubscribeOnSportsLines(stream pb.SportsLinesServi
 			for _, sport := range req.GetSport() {
 				coef, err := s.deps.Lines[sport].GetLast(streamCtx)
 				if err != nil {
-					return err
+					return fmt.Errorf("couldn't get coefficient for sport %s: %w", sport, err)
 				}
 
 				resp.Sports[sport] = s.getCoefDelta(initialCoef[sport], float32(coef.Coef))
@@ -148,7 +149,7 @@ func (s *LinesProcessorServer) SubscribeOnSportsLines(stream pb.SportsLinesServi
 			for _, sport := range req.GetSport() {
 				coef, err := s.deps.Lines[sport].GetLast(streamCtx)
 				if err != nil {
-					return err
+					return fmt.Errorf("error receiving previous request: %w", err)
 				}
 
 				rounded := round(float32(coef.Coef))
@@ -169,4 +170,8 @@ func (s *LinesProcessorServer) SubscribeOnSportsLines(stream pb.SportsLinesServi
 
 		go s.SendStream(ctx, stream, req.GetInterval().AsDuration(), req.GetSport(), initialCoef)
 	}
+}
+
+func (s *LinesProcessorServer) getCoefDelta(a, b float32) float32 {
+	return round(a - b)
 }

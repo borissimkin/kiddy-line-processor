@@ -1,4 +1,27 @@
 version: "2"
 linters:
   default: all
-  
+  disable:
+    - wsl
+    - revive
+  enable:
+    - wsl_v5
+  settings:
+    exhaustruct:
+      exclude:
+        - github.com/sirupsen/logrus
+    depguard:
+      rules:
+        Main:
+          list-mode: lax # allow unless explicitely denied
+          files:
+            - $all
+          deny:
+            - pkg: reflect
+              desc: "Please don't use reflect package"
+  exclusions:
+    rules:
+     - path: '(.+)_test\.go'
+       linters:
+        - funlen
+        - lll

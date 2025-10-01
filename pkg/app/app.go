@@ -2,11 +2,11 @@ package app
 
 import (
 	"context"
-	cfg "kiddy-line-processor/internal/config"
-	"kiddy-line-processor/internal/linesprocessor"
-	"kiddy-line-processor/internal/linesprovider"
-	"kiddy-line-processor/internal/ready"
-	"kiddy-line-processor/internal/storage"
+	cfg "kiddy-line-processor/pkg/config"
+	"kiddy-line-processor/pkg/linesprocessor"
+	"kiddy-line-processor/pkg/linesprovider"
+	"kiddy-line-processor/pkg/ready"
+	"kiddy-line-processor/pkg/storage"
 
 	log "github.com/sirupsen/logrus"
 )
