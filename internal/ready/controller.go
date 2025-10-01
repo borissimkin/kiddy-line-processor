@@ -26,6 +26,7 @@ type ReadyResponse struct {
 
 func (s *Server) readyHandle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+
 	isReady := s.service.Ready(r.Context())
 
 	response := &ReadyResponse{

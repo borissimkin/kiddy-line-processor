@@ -2,6 +2,7 @@ package linesprocessor
 
 import (
 	"context"
+	"errors"
 	"io"
 	"kiddy-line-processor/internal/linesprovider"
 	pb "kiddy-line-processor/internal/proto"
@@ -37,6 +38,7 @@ func (s *LinesProcessorServer) Run(addr string) {
 	lis, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Fatal(err)
+
 		return
 	}
 
@@ -96,6 +98,7 @@ func (s *LinesProcessorServer) SendStream(ctx context.Context, stream pb.SportsL
 			err := stream.Send(resp)
 			if err != nil {
 				log.Error(err)
+
 				return
 			}
 		case <-ctx.Done():
@@ -105,17 +108,21 @@ func (s *LinesProcessorServer) SendStream(ctx context.Context, stream pb.SportsL
 }
 
 func (s *LinesProcessorServer) SubscribeOnSportsLines(stream pb.SportsLinesService_SubscribeOnSportsLinesServer) error {
-	var prevReq PreviosRequest
-	var cancelSender context.CancelFunc
+	var (
+		prevReq      PreviosRequest
+		cancelSender context.CancelFunc
+	)
+
 	initialCoef := make(map[string]float32)
 
 	for {
 		streamCtx := stream.Context()
 
 		req, err := stream.Recv()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			return nil
 		}
+
 		if err != nil {
 			return err
 		}
@@ -128,16 +135,17 @@ func (s *LinesProcessorServer) SubscribeOnSportsLines(stream pb.SportsLinesServi
 			Sports: make(map[string]float32),
 		}
 
-		if isSame(prevReq.Sport, req.Sport) {
-			for _, sport := range req.Sport {
+		if isSame(prevReq.Sport, req.GetSport()) {
+			for _, sport := range req.GetSport() {
 				coef, err := s.deps.Lines[sport].GetLast(streamCtx)
 				if err != nil {
 					return err
 				}
+
 				resp.Sports[sport] = s.getCoefDelta(initialCoef[sport], float32(coef.Coef))
 			}
 		} else {
-			for _, sport := range req.Sport {
+			for _, sport := range req.GetSport() {
 				coef, err := s.deps.Lines[sport].GetLast(streamCtx)
 				if err != nil {
 					return err
@@ -157,8 +165,8 @@ func (s *LinesProcessorServer) SubscribeOnSportsLines(stream pb.SportsLinesServi
 		ctx, cancel := context.WithCancel(context.Background())
 		cancelSender = cancel
 
-		prevReq.Sport = req.Sport
+		prevReq.Sport = req.GetSport()
 
-		go s.SendStream(ctx, stream, req.Interval.AsDuration(), req.Sport, initialCoef)
+		go s.SendStream(ctx, stream, req.GetInterval().AsDuration(), req.GetSport(), initialCoef)
 	}
 }

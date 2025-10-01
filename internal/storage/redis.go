@@ -26,8 +26,10 @@ func Init(cfg config.RedisConfig) *RedisStorage {
 }
 
 func (r *RedisStorage) Ready(ctx context.Context) bool {
-	if err := r.Ping(ctx).Err(); err != nil {
+	err := r.Ping(ctx).Err()
+	if err != nil {
 		logrus.Error(err)
+
 		return false
 	}
 
