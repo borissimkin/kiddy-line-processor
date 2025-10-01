@@ -2,7 +2,7 @@ package ready
 
 import (
 	"encoding/json"
-	"kiddy-line-processor/internal/config"
+	"kiddy-line-processor/pkg/config"
 	"net/http"
 
 	log "github.com/sirupsen/logrus"
@@ -24,8 +24,14 @@ type ReadyResponse struct {
 	Ready bool `json:"ready"`
 }
 
-func (s *Server) readyHandle(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
+func (s *Server) Run() {
+	http.HandleFunc("/ready", s.readyHandle)
+
+	log.Fatal(http.ListenAndServe(s.cfg.Addr(), nil))
+}
+
+func (s *Server) readyHandle(writer http.ResponseWriter, r *http.Request) {
+	writer.Header().Set("Content-Type", "application/json")
 
 	isReady := s.service.Ready(r.Context())
 
@@ -33,14 +39,8 @@ func (s *Server) readyHandle(w http.ResponseWriter, r *http.Request) {
 		Ready: isReady,
 	}
 
-	err := json.NewEncoder(w).Encode(response)
+	err := json.NewEncoder(writer).Encode(response)
 	if err != nil {
 		log.Error(err)
 	}
-}
-
-func (s *Server) Run() {
-	http.HandleFunc("/ready", s.readyHandle)
-
-	log.Fatal(http.ListenAndServe(s.cfg.Addr(), nil))
 }

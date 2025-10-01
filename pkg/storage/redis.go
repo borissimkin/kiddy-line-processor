@@ -1,18 +1,21 @@
+// Package storage places storage implementations.
 package storage
 
 import (
 	"context"
 	"fmt"
-	"kiddy-line-processor/internal/config"
+	"kiddy-line-processor/pkg/config"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 )
 
+// RedisStorage storage.
 type RedisStorage struct {
 	*redis.Client
 }
 
+// Init initialize storage.
 func Init(cfg config.RedisConfig) *RedisStorage {
 	client := redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%d", cfg.Host, cfg.Port),
@@ -25,6 +28,7 @@ func Init(cfg config.RedisConfig) *RedisStorage {
 	}
 }
 
+// Ready check storage connection.
 func (r *RedisStorage) Ready(ctx context.Context) bool {
 	err := r.Ping(ctx).Err()
 	if err != nil {

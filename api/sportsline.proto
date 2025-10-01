@@ -2,7 +2,7 @@ syntax = "proto3";
 package proto;
 
 
-option go_package = "kiddy-line-processor/internal/proto";
+option go_package = "kiddy-line-processor/pkg/proto";
 import "google/protobuf/duration.proto";
 
 service SportsLinesService {

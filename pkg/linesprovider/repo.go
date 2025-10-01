@@ -2,11 +2,12 @@ package linesprovider
 
 import (
 	"context"
-	"kiddy-line-processor/internal/storage"
+	"fmt"
+	"kiddy-line-processor/pkg/storage"
 	"strconv"
 
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 type LineRepo struct {
@@ -24,30 +25,30 @@ func NewSportRepo(storage *storage.RedisStorage, sport string) *LineRepo {
 func (r *LineRepo) Save(ctx context.Context, coef float64) error {
 	_, err := r.storage.RPush(ctx, r.key(), coef).Result()
 	if err != nil {
-		logrus.Error(err)
+		e := fmt.Errorf("failed RPush in Save: %w", err)
+		log.Error(e)
+
+		return e
 	}
 
-	return err
+	return nil
 }
 
 func (r *LineRepo) GetLast(ctx context.Context) (CoefItem, error) {
-	result := CoefItem{}
-
 	val, err := r.storage.LIndex(ctx, r.key(), -1).Result()
 	if err != nil {
-		logrus.Error(err)
+		e := fmt.Errorf("failed LIndex in GetLast: %w", err)
+		log.Error(e)
 
-		return result, err
+		return CoefItem{}, e
 	}
-
-	result.Id = uuid.New().String()
 
 	res, err := strconv.ParseFloat(val, 32)
 	if err != nil {
-		return result, err
+		return CoefItem{}, fmt.Errorf("failed ParseFloat in GetLast: %w", err)
 	}
 
-	result.Coef = res
+	result := NewCoefItem(uuid.New().String(), res)
 
 	return result, nil
 }
@@ -55,7 +56,7 @@ func (r *LineRepo) GetLast(ctx context.Context) (CoefItem, error) {
 func (r *LineRepo) Ready(ctx context.Context) bool {
 	err := r.storage.Ping(ctx).Err()
 	if err != nil {
-		logrus.Error(err)
+		log.Error(err)
 
 		return false
 	}

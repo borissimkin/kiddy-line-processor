@@ -1,3 +1,4 @@
+// Package linesprovider
 package linesprovider
 
 import (
@@ -5,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"kiddy-line-processor/internal/config"
+	"kiddy-line-processor/pkg/config"
 	"net/http"
 	"strconv"
 	"strings"
@@ -26,12 +27,12 @@ type LinesProviders = map[string]*LinesProvider
 func NewLinesProvider(
 	cfg config.LinesProviderConfig,
 	lineService *LineService,
-	pullInteval time.Duration,
+	interval time.Duration,
 ) *LinesProvider {
 	return &LinesProvider{
 		cfg:          cfg,
 		lineService:  lineService,
-		pullInterval: pullInteval,
+		pullInterval: interval,
 	}
 }
 
@@ -49,7 +50,7 @@ func (p *LinesProvider) Pull(ctx context.Context) error {
 	return nil
 }
 
-func (p *LinesProvider) StartPulling(ctx context.Context, wg *sync.WaitGroup) {
+func (p *LinesProvider) StartPulling(ctx context.Context, waitGroup *sync.WaitGroup) {
 	ctxLogger := log.WithFields(log.Fields{
 		"provider": p.lineService.Sport,
 		"interval": p.pullInterval.String(),
@@ -76,7 +77,7 @@ func (p *LinesProvider) StartPulling(ctx context.Context, wg *sync.WaitGroup) {
 			ctxLogger.Info("Pulled successfully")
 
 			if !p.lineService.Synced() {
-				wg.Done()
+				waitGroup.Done()
 				p.lineService.SetSynced(true)
 				ctxLogger.Info("Is synced")
 			}
@@ -94,7 +95,7 @@ type LinesProviderResponse struct {
 func (p *LinesProvider) fetch() (float64, error) {
 	resp, err := http.Get(fmt.Sprintf("http://%s/api/v1/lines/%s", p.cfg.Addr(), p.lineService.Sport))
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("failed http get in fetch: %w", err)
 	}
 
 	defer resp.Body.Close()
@@ -108,14 +109,14 @@ func (p *LinesProvider) fetch() (float64, error) {
 
 	err = json.Unmarshal(body, &response)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("faied unmarshal in fetch: %w", err)
 	}
 
 	coef := response.Lines[strings.ToUpper(p.lineService.Sport)]
 
 	coefFloat, err := strconv.ParseFloat(coef, 64)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("failed ParseFloat in fetch: %w", err)
 	}
 
 	return coefFloat, nil

@@ -13,6 +13,13 @@ type CoefItem struct {
 	Coef float64
 }
 
+func NewCoefItem(id string, coef float64) CoefItem {
+	return CoefItem{
+		Id:   id,
+		Coef: coef,
+	}
+}
+
 type LineRepoInterface interface {
 	Save(ctx context.Context, coef float64) error
 	GetLast(ctx context.Context) (CoefItem, error)
@@ -24,10 +31,12 @@ type LineService struct {
 	repo   LineRepoInterface
 }
 
+// NewLineService constructor.
 func NewLineService(sport string, repo LineRepoInterface) *LineService {
 	return &LineService{
-		Sport: sport,
-		repo:  repo,
+		Sport:  sport,
+		repo:   repo,
+		synced: atomic.Bool{},
 	}
 }
 
