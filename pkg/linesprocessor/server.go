@@ -31,13 +31,17 @@ func NewLinesProcessorServer(deps *ServerDeps) *LinesProcessorServer {
 	grpcServer := grpc.NewServer()
 
 	return &LinesProcessorServer{
-		deps: deps,
-		srv:  grpcServer,
+		UnimplementedSportsLinesServiceServer: pb.UnimplementedSportsLinesServiceServer{},
+		deps:                                  deps,
+		srv:                                   grpcServer,
 	}
 }
 
-func (s *LinesProcessorServer) Run(addr string) {
-	lis, err := net.Listen("tcp", addr)
+func (s *LinesProcessorServer) Run(ctx context.Context, addr string) {
+	//nolint:exhaustruct
+	lc := net.ListenConfig{}
+
+	lis, err := lc.Listen(ctx, "tcp", addr)
 	if err != nil {
 		log.Fatal(err)
 
@@ -56,6 +60,8 @@ func (s *LinesProcessorServer) Run(addr string) {
 type PreviousRequest struct {
 	Sport []string
 }
+
+type coefsMap map[string]float32
 
 func round(x float32) float32 {
 	const roundPrecision = 100
@@ -77,7 +83,13 @@ func isSame(oldSports []string, sports []string) bool {
 	return true
 }
 
-func (s *LinesProcessorServer) SendStream(ctx context.Context, stream pb.SportsLinesService_SubscribeOnSportsLinesServer, interval time.Duration, sports []string, initialCoef map[string]float32) {
+func (s *LinesProcessorServer) SendStream(
+	ctx context.Context,
+	stream pb.SportsLinesService_SubscribeOnSportsLinesServer,
+	interval time.Duration,
+	sports []string,
+	initialCoef coefsMap,
+) {
 	ticker := time.NewTicker(interval)
 
 	defer ticker.Stop()
@@ -86,7 +98,7 @@ func (s *LinesProcessorServer) SendStream(ctx context.Context, stream pb.SportsL
 		select {
 		case <-ticker.C:
 			resp := &pb.SubscribeResponse{
-				Sports: make(map[string]float32),
+				Sports: make(coefsMap),
 			}
 
 			for _, sport := range sports {
@@ -114,7 +126,7 @@ func (s *LinesProcessorServer) SubscribeOnSportsLines(stream pb.SportsLinesServi
 		cancelSender context.CancelFunc
 	)
 
-	initialCoef := make(map[string]float32)
+	initialCoef := make(coefsMap)
 
 	for {
 		streamCtx := stream.Context()
@@ -125,42 +137,26 @@ func (s *LinesProcessorServer) SubscribeOnSportsLines(stream pb.SportsLinesServi
 		}
 
 		if err != nil {
-			return fmt.Errorf("error receiving previous request: %w", err)
+			return fmt.Errorf("error receiving stream: %w", err)
 		}
 
 		if cancelSender != nil {
 			cancelSender()
 		}
 
-		resp := &pb.SubscribeResponse{
-			Sports: make(map[string]float32),
+		// Универсальная функция расчёта коэффициентов
+		coefMap, err := s.calculateCoef(streamCtx, req, initialCoef, prevReq.Sport)
+		if err != nil {
+			return err
 		}
 
-		if isSame(prevReq.Sport, req.GetSport()) {
-			for _, sport := range req.GetSport() {
-				coef, err := s.deps.Lines[sport].GetLast(streamCtx)
-				if err != nil {
-					return fmt.Errorf("couldn't get coefficient for sport %s: %w", sport, err)
-				}
-
-				resp.Sports[sport] = s.getCoefDelta(initialCoef[sport], float32(coef.Coef))
-			}
-		} else {
-			for _, sport := range req.GetSport() {
-				coef, err := s.deps.Lines[sport].GetLast(streamCtx)
-				if err != nil {
-					return fmt.Errorf("error receiving previous request: %w", err)
-				}
-
-				rounded := round(float32(coef.Coef))
-				resp.Sports[sport] = rounded
-				initialCoef[sport] = rounded
-			}
+		resp := &pb.SubscribeResponse{
+			Sports: coefMap,
 		}
 
 		err = stream.Send(resp)
 		if err != nil {
-			log.Error(err)
+			log.Error(fmt.Errorf("error sending coefficients: %w", err))
 		}
 
 		ctx, cancel := context.WithCancel(context.Background())
@@ -170,6 +166,36 @@ func (s *LinesProcessorServer) SubscribeOnSportsLines(stream pb.SportsLinesServi
 
 		go s.SendStream(ctx, stream, req.GetInterval().AsDuration(), req.GetSport(), initialCoef)
 	}
+}
+
+func (s *LinesProcessorServer) calculateCoef(
+	streamCtx context.Context,
+	req *pb.SubscribeRequest,
+	initialCoef coefsMap,
+	prevReqSport []string,
+) (coefsMap, error) {
+	result := make(coefsMap)
+
+	same := isSame(prevReqSport, req.GetSport())
+
+	for _, sport := range req.GetSport() {
+		coefObj, err := s.deps.Lines[sport].GetLast(streamCtx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get coefficient for sport %s: %w", sport, err)
+		}
+
+		var value float32
+		if same {
+			value = s.getCoefDelta(initialCoef[sport], float32(coefObj.Coef))
+		} else {
+			value = round(float32(coefObj.Coef))
+			initialCoef[sport] = value
+		}
+
+		result[sport] = value
+	}
+
+	return result, nil
 }
 
 func (s *LinesProcessorServer) getCoefDelta(a, b float32) float32 {

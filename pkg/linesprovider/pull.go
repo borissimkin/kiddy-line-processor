@@ -1,4 +1,3 @@
-// Package linesprovider
 package linesprovider
 
 import (
@@ -20,6 +19,7 @@ type LinesProvider struct {
 	cfg          config.LinesProviderConfig
 	lineService  *LineService
 	pullInterval time.Duration
+	client       *http.Client
 }
 
 type LinesProviders = map[string]*LinesProvider
@@ -29,15 +29,20 @@ func NewLinesProvider(
 	lineService *LineService,
 	interval time.Duration,
 ) *LinesProvider {
+	const timeout = time.Second * 10
+
 	return &LinesProvider{
 		cfg:          cfg,
 		lineService:  lineService,
 		pullInterval: interval,
+		client: &http.Client{ //nolint:exhaustruct
+			Timeout: timeout,
+		},
 	}
 }
 
 func (p *LinesProvider) Pull(ctx context.Context) error {
-	coef, err := p.fetch()
+	coef, err := p.fetch(ctx)
 	if err != nil {
 		return err
 	}
@@ -92,13 +97,25 @@ type LinesProviderResponse struct {
 	Lines map[string]string `json:"lines"`
 }
 
-func (p *LinesProvider) fetch() (float64, error) {
-	resp, err := http.Get(fmt.Sprintf("http://%s/api/v1/lines/%s", p.cfg.Addr(), p.lineService.Sport))
+func (p *LinesProvider) fetch(ctx context.Context) (float64, error) {
+	url := fmt.Sprintf("http://%s/api/v1/lines/%s", p.cfg.Addr(), p.lineService.Sport)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return 0, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := p.client.Do(req)
 	if err != nil {
 		return 0, fmt.Errorf("failed http get in fetch: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		err := resp.Body.Close()
+		if err != nil {
+			log.Errorf("Failed to close response body: %v", err)
+		}
+	}()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
