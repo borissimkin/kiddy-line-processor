@@ -15,6 +15,7 @@ type LineSyncedChecker interface {
 	Synced() bool
 }
 
+// LinesReadyService is service for ready http server.
 type LinesReadyService struct {
 	Wg             *sync.WaitGroup
 	ready          atomic.Bool
@@ -22,6 +23,7 @@ type LinesReadyService struct {
 	storageChecker storageReadyChecker
 }
 
+// NewLinesReadyService constructor.
 func NewLinesReadyService(lines []LineSyncedChecker, storageChecker storageReadyChecker) *LinesReadyService {
 	return &LinesReadyService{
 		Wg:             &sync.WaitGroup{},
@@ -31,6 +33,7 @@ func NewLinesReadyService(lines []LineSyncedChecker, storageChecker storageReady
 	}
 }
 
+// Ready checks that storage is ready and lines are synchronized.
 func (s *LinesReadyService) Ready(ctx context.Context) bool {
 	if !s.storageChecker.Ready(ctx) {
 		return false

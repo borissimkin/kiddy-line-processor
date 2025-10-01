@@ -1,3 +1,4 @@
+// Package app run and initialize main service.
 package app
 
 import (
@@ -11,6 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Run init and run app.
 func Run() {
 	config := cfg.InitConfig()
 
@@ -40,7 +42,7 @@ func Run() {
 
 	ctx := context.Background()
 
-	httpServer := ready.NewServer(config.Http, readyService)
+	httpServer := ready.NewServer(config.HTTP, readyService)
 	go httpServer.Run()
 
 	linesPullService := linesprovider.InitLinesPullService(config, lineServiceMap)

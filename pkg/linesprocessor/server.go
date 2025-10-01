@@ -1,3 +1,4 @@
+// Package linesprocessor provides functionality for bidirectional streaming of processed coefficients.
 package linesprocessor
 
 import (
@@ -16,28 +17,32 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
+// ServerDeps defines dependencies for lines processor server.
 type ServerDeps struct {
 	Lines linesprovider.LineServiceMap
 }
 
-type LinesProcessorServer struct {
+// Server is grpc server.
+type Server struct {
 	pb.UnimplementedSportsLinesServiceServer
 
 	deps *ServerDeps
 	srv  *grpc.Server
 }
 
-func NewLinesProcessorServer(deps *ServerDeps) *LinesProcessorServer {
+// NewLinesProcessorServer constructor.
+func NewLinesProcessorServer(deps *ServerDeps) *Server {
 	grpcServer := grpc.NewServer()
 
-	return &LinesProcessorServer{
+	return &Server{
 		UnimplementedSportsLinesServiceServer: pb.UnimplementedSportsLinesServiceServer{},
 		deps:                                  deps,
 		srv:                                   grpcServer,
 	}
 }
 
-func (s *LinesProcessorServer) Run(ctx context.Context, addr string) {
+// Run runs grpc server.
+func (s *Server) Run(ctx context.Context, addr string) {
 	//nolint:exhaustruct
 	lc := net.ListenConfig{}
 
@@ -57,7 +62,7 @@ func (s *LinesProcessorServer) Run(ctx context.Context, addr string) {
 	}
 }
 
-type PreviousRequest struct {
+type previousRequest struct {
 	Sport []string
 }
 
@@ -83,7 +88,55 @@ func isSame(oldSports []string, sports []string) bool {
 	return true
 }
 
-func (s *LinesProcessorServer) SendStream(
+// SubscribeOnSportsLines subscribe to receiving processed sports coefficients.
+func (s *Server) SubscribeOnSportsLines(stream pb.SportsLinesService_SubscribeOnSportsLinesServer) error {
+	var (
+		prevReq      previousRequest
+		cancelSender context.CancelFunc
+	)
+
+	initialCoef := make(coefsMap)
+
+	for {
+		streamCtx := stream.Context()
+
+		req, err := stream.Recv()
+		if errors.Is(err, io.EOF) {
+			return nil
+		}
+
+		if err != nil {
+			return fmt.Errorf("error receiving stream: %w", err)
+		}
+
+		if cancelSender != nil {
+			cancelSender()
+		}
+
+		coefMap, err := s.calculateCoef(streamCtx, req, initialCoef, prevReq.Sport)
+		if err != nil {
+			return err
+		}
+
+		resp := &pb.SubscribeResponse{
+			Sports: coefMap,
+		}
+
+		err = stream.Send(resp)
+		if err != nil {
+			log.Error(fmt.Errorf("error sending coefficients: %w", err))
+		}
+
+		ctx, cancel := context.WithCancel(context.Background())
+		cancelSender = cancel
+
+		prevReq.Sport = req.GetSport()
+
+		go s.sendStream(ctx, stream, req.GetInterval().AsDuration(), req.GetSport(), initialCoef)
+	}
+}
+
+func (s *Server) sendStream(
 	ctx context.Context,
 	stream pb.SportsLinesService_SubscribeOnSportsLinesServer,
 	interval time.Duration,
@@ -119,56 +172,7 @@ func (s *LinesProcessorServer) SendStream(
 	}
 }
 
-// SubscribeOnSportsLines subscribe to receiving processed sports coefficients.
-func (s *LinesProcessorServer) SubscribeOnSportsLines(stream pb.SportsLinesService_SubscribeOnSportsLinesServer) error {
-	var (
-		prevReq      PreviousRequest
-		cancelSender context.CancelFunc
-	)
-
-	initialCoef := make(coefsMap)
-
-	for {
-		streamCtx := stream.Context()
-
-		req, err := stream.Recv()
-		if errors.Is(err, io.EOF) {
-			return nil
-		}
-
-		if err != nil {
-			return fmt.Errorf("error receiving stream: %w", err)
-		}
-
-		if cancelSender != nil {
-			cancelSender()
-		}
-
-		// Универсальная функция расчёта коэффициентов
-		coefMap, err := s.calculateCoef(streamCtx, req, initialCoef, prevReq.Sport)
-		if err != nil {
-			return err
-		}
-
-		resp := &pb.SubscribeResponse{
-			Sports: coefMap,
-		}
-
-		err = stream.Send(resp)
-		if err != nil {
-			log.Error(fmt.Errorf("error sending coefficients: %w", err))
-		}
-
-		ctx, cancel := context.WithCancel(context.Background())
-		cancelSender = cancel
-
-		prevReq.Sport = req.GetSport()
-
-		go s.SendStream(ctx, stream, req.GetInterval().AsDuration(), req.GetSport(), initialCoef)
-	}
-}
-
-func (s *LinesProcessorServer) calculateCoef(
+func (s *Server) calculateCoef(
 	streamCtx context.Context,
 	req *pb.SubscribeRequest,
 	initialCoef coefsMap,
@@ -198,6 +202,6 @@ func (s *LinesProcessorServer) calculateCoef(
 	return result, nil
 }
 
-func (s *LinesProcessorServer) getCoefDelta(a, b float32) float32 {
+func (s *Server) getCoefDelta(a, b float32) float32 {
 	return round(a - b)
 }

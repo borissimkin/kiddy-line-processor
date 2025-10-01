@@ -1,4 +1,4 @@
-// Package storage places storage implementations.
+// Package storage provides storage implementations.
 package storage
 
 import (
