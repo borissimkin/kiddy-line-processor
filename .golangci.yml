@@ -3,7 +3,6 @@ linters:
   default: all
   disable:
     - wsl
-    - revive
   enable:
     - wsl_v5
   settings:

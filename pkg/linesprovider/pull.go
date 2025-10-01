@@ -1,3 +1,4 @@
+// Package linesprovider works with external service for pulling coefficients.
 package linesprovider
 
 import (
@@ -15,6 +16,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// LinesProvider for pulling sport line coefficients.
 type LinesProvider struct {
 	cfg          config.LinesProviderConfig
 	lineService  *LineService
@@ -22,8 +24,10 @@ type LinesProvider struct {
 	client       *http.Client
 }
 
+// LinesProviders is map of sports and its lines providers.
 type LinesProviders = map[string]*LinesProvider
 
+// NewLinesProvider constructor.
 func NewLinesProvider(
 	cfg config.LinesProviderConfig,
 	lineService *LineService,
@@ -41,6 +45,7 @@ func NewLinesProvider(
 	}
 }
 
+// Pull do fetch line data from external service and save it to storage.
 func (p *LinesProvider) Pull(ctx context.Context) error {
 	coef, err := p.fetch(ctx)
 	if err != nil {
@@ -55,6 +60,7 @@ func (p *LinesProvider) Pull(ctx context.Context) error {
 	return nil
 }
 
+// StartPulling runs infinity pulling sport data by interval.
 func (p *LinesProvider) StartPulling(ctx context.Context, waitGroup *sync.WaitGroup) {
 	ctxLogger := log.WithFields(log.Fields{
 		"provider": p.lineService.Sport,
@@ -93,7 +99,7 @@ func (p *LinesProvider) StartPulling(ctx context.Context, waitGroup *sync.WaitGr
 	}
 }
 
-type LinesProviderResponse struct {
+type linesProviderResponse struct {
 	Lines map[string]string `json:"lines"`
 }
 
@@ -122,7 +128,7 @@ func (p *LinesProvider) fetch(ctx context.Context) (float64, error) {
 		return 0, nil
 	}
 
-	var response LinesProviderResponse
+	var response linesProviderResponse
 
 	err = json.Unmarshal(body, &response)
 	if err != nil {
@@ -139,10 +145,12 @@ func (p *LinesProvider) fetch(ctx context.Context) (float64, error) {
 	return coefFloat, nil
 }
 
+// LinesPullService defines all lines providers for pulling.
 type LinesPullService struct {
 	linesProviders []*LinesProvider
 }
 
+// InitLinesPullService constructor.
 func InitLinesPullService(config config.Config, lines LineServiceMap) *LinesPullService {
 	return &LinesPullService{
 		linesProviders: []*LinesProvider{
@@ -153,6 +161,7 @@ func InitLinesPullService(config config.Config, lines LineServiceMap) *LinesPull
 	}
 }
 
+// StartPulling runs pulling for all lines providers.
 func (s *LinesPullService) StartPulling(ctx context.Context, wg *sync.WaitGroup) {
 	for _, provider := range s.linesProviders {
 		go provider.StartPulling(ctx, wg)

@@ -10,11 +10,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// LineRepo is a repository for line coefficients.
 type LineRepo struct {
 	Sport   string
 	storage *storage.RedisStorage
 }
 
+// NewSportRepo constructor.
 func NewSportRepo(storage *storage.RedisStorage, sport string) *LineRepo {
 	return &LineRepo{
 		storage: storage,
@@ -22,6 +24,7 @@ func NewSportRepo(storage *storage.RedisStorage, sport string) *LineRepo {
 	}
 }
 
+// Save is for saving coefficient.
 func (r *LineRepo) Save(ctx context.Context, coef float64) error {
 	_, err := r.storage.RPush(ctx, r.key(), coef).Result()
 	if err != nil {
@@ -34,6 +37,7 @@ func (r *LineRepo) Save(ctx context.Context, coef float64) error {
 	return nil
 }
 
+// GetLast gets last saved coefficient.
 func (r *LineRepo) GetLast(ctx context.Context) (CoefItem, error) {
 	val, err := r.storage.LIndex(ctx, r.key(), -1).Result()
 	if err != nil {
@@ -53,6 +57,7 @@ func (r *LineRepo) GetLast(ctx context.Context) (CoefItem, error) {
 	return result, nil
 }
 
+// Ready checks connection to storage.
 func (r *LineRepo) Ready(ctx context.Context) bool {
 	err := r.storage.Ping(ctx).Err()
 	if err != nil {

@@ -1,3 +1,5 @@
+// Package ready is a package for checking that service is ready for processed coefficients streaming It provides
+// http server with ready status information.
 package ready
 
 import (
@@ -10,22 +12,25 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Server defines configuration for http server.
 type Server struct {
-	cfg     config.HttpConfig
+	cfg     config.HTTPConfig
 	service *LinesReadyService
 }
 
-func NewServer(cfg config.HttpConfig, service *LinesReadyService) *Server {
+// NewServer constructor.
+func NewServer(cfg config.HTTPConfig, service *LinesReadyService) *Server {
 	return &Server{
 		cfg:     cfg,
 		service: service,
 	}
 }
 
-type ReadyResponse struct {
+type response struct {
 	Ready bool `json:"ready"`
 }
 
+// Run starts server.
 func (s *Server) Run() {
 	const (
 		idleTimeout  = 120 * time.Second
@@ -55,11 +60,11 @@ func (s *Server) readyHandle(writer http.ResponseWriter, r *http.Request) {
 
 	isReady := s.service.Ready(r.Context())
 
-	response := &ReadyResponse{
+	resp := &response{
 		Ready: isReady,
 	}
 
-	err := json.NewEncoder(writer).Encode(response)
+	err := json.NewEncoder(writer).Encode(resp)
 	if err != nil {
 		log.Error(err)
 	}

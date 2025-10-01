@@ -6,6 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// SetLogger initialize logger.
 func SetLogger(level string) {
 	logLevel, err := logrus.ParseLevel(level)
 	if err != nil {
