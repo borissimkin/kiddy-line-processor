@@ -67,12 +67,13 @@ func (p *LinesProvider) StartPulling(ctx context.Context, wg *sync.WaitGroup) {
 			err := p.Pull(ctx)
 			if err != nil {
 				ctxLogger.Error(err)
+
 				if !p.lineService.Synced() {
 					return
 				}
 			}
 
-			ctxLogger.Info("Pulled succesfully")
+			ctxLogger.Info("Pulled successfully")
 
 			if !p.lineService.Synced() {
 				wg.Done()
@@ -92,7 +93,6 @@ type LinesProviderResponse struct {
 
 func (p *LinesProvider) fetch() (float64, error) {
 	resp, err := http.Get(fmt.Sprintf("http://%s/api/v1/lines/%s", p.cfg.Addr(), p.lineService.Sport))
-
 	if err != nil {
 		return 0, err
 	}
@@ -100,7 +100,6 @@ func (p *LinesProvider) fetch() (float64, error) {
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
-
 	if err != nil {
 		return 0, nil
 	}
@@ -108,7 +107,6 @@ func (p *LinesProvider) fetch() (float64, error) {
 	var response LinesProviderResponse
 
 	err = json.Unmarshal(body, &response)
-
 	if err != nil {
 		return 0, err
 	}
@@ -116,7 +114,6 @@ func (p *LinesProvider) fetch() (float64, error) {
 	coef := response.Lines[strings.ToUpper(p.lineService.Sport)]
 
 	coefFloat, err := strconv.ParseFloat(coef, 64)
-
 	if err != nil {
 		return 0, err
 	}

@@ -28,6 +28,7 @@ func TestReadyService_Ready(t *testing.T) {
 			name: "should ready",
 			mockBehavior: func(l []*readymocks.MockLineSyncedChecker, s *readymocks.MockStorageReadyChecker, args args) {
 				s.EXPECT().Ready(args.ctx).Return(true)
+
 				for _, checker := range l {
 					checker.EXPECT().Synced().AnyTimes().Return(true)
 				}
@@ -41,6 +42,7 @@ func TestReadyService_Ready(t *testing.T) {
 			name: "should not ready by storage",
 			mockBehavior: func(l []*readymocks.MockLineSyncedChecker, s *readymocks.MockStorageReadyChecker, args args) {
 				s.EXPECT().Ready(args.ctx).Return(false)
+
 				for _, checker := range l {
 					checker.EXPECT().Synced().AnyTimes().Return(true)
 				}
@@ -54,11 +56,13 @@ func TestReadyService_Ready(t *testing.T) {
 			name: "should not ready by one line",
 			mockBehavior: func(l []*readymocks.MockLineSyncedChecker, s *readymocks.MockStorageReadyChecker, args args) {
 				s.EXPECT().Ready(args.ctx).Return(true)
+
 				for i, checker := range l {
 					v := true
 					if i == 0 {
 						v = false
 					}
+
 					checker.EXPECT().Synced().AnyTimes().Return(v)
 				}
 			},
@@ -77,13 +81,14 @@ func TestReadyService_Ready(t *testing.T) {
 			countLines := 3
 			mockLines := make([]*readymocks.MockLineSyncedChecker, countLines)
 			lineCheckers := make([]LineSyncedChecker, countLines)
-			for i := range mockLines {
+
+			for index := range mockLines {
 				ctrl := gomock.NewController(t)
 				defer ctrl.Finish()
 
 				checker := readymocks.NewMockLineSyncedChecker(ctrl)
-				mockLines[i] = checker
-				lineCheckers[i] = checker
+				mockLines[index] = checker
+				lineCheckers[index] = checker
 			}
 
 			mockStorageChecker := readymocks.NewMockStorageReadyChecker(ctrl)
@@ -114,6 +119,7 @@ func TestReadyService_Wait(t *testing.T) {
 			name: "should wait and set ready true",
 			mockBehavior: func(l []*readymocks.MockLineSyncedChecker, s *readymocks.MockStorageReadyChecker, args args) {
 				s.EXPECT().Ready(args.ctx).AnyTimes().Return(true)
+
 				for _, checker := range l {
 					checker.EXPECT().Synced().AnyTimes().Return(true)
 				}
@@ -133,6 +139,7 @@ func TestReadyService_Wait(t *testing.T) {
 			countLines := 3
 			mockLines := make([]*readymocks.MockLineSyncedChecker, countLines)
 			lineCheckers := make([]LineSyncedChecker, countLines)
+
 			for i := range mockLines {
 				ctrl := gomock.NewController(t)
 				defer ctrl.Finish()
@@ -150,17 +157,20 @@ func TestReadyService_Wait(t *testing.T) {
 			service.Wg.Add(countLines)
 
 			now := time.Now()
+
 			go func() {
 				time.Sleep(10 * time.Millisecond)
+
 				for range countLines {
 					service.Wg.Done()
 				}
 			}()
 
 			service.Wait()
+
 			after := time.Now()
 
-			assert.True(t, after.Sub(now) >= 10*time.Millisecond)
+			assert.GreaterOrEqual(t, after.Sub(now), 10*time.Millisecond)
 			assert.Equal(t, tc.want, service.IsReady())
 		})
 	}

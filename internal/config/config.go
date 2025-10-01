@@ -1,7 +1,7 @@
 package config
 
 import (
-	// this will automatically load .env file:
+	// this will automatically load .env file:.
 	"fmt"
 	"time"
 
@@ -11,15 +11,15 @@ import (
 
 type PullInterval struct {
 	Baseball time.Duration `env:"PULL_INTERVAL_BASEBALL" env-default:"1s"`
-	Soccer   time.Duration `env:"PULL_INTERVAL_SOCCER" env-default:"2s"`
+	Soccer   time.Duration `env:"PULL_INTERVAL_SOCCER"   env-default:"2s"`
 	Football time.Duration `env:"PULL_INTERVAL_FOOTBALL" env-default:"3s"`
 }
 
 type RedisConfig struct {
-	Host     string `env:"REDIS_HOST" env-default:"localhost"`
-	Port     int    `env:"REDIS_PORT" env-default:"6379"`
+	Host     string `env:"REDIS_HOST"     env-default:"localhost"`
+	Port     int    `env:"REDIS_PORT"     env-default:"6379"`
 	Password string `env:"REDIS_PASSWORD" env-default:""`
-	DB       int    `env:"REDIS_DB" env-default:"0"`
+	DB       int    `env:"REDIS_DB"       env-default:"0"`
 }
 
 type HttpConfig struct {

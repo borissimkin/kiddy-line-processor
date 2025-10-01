@@ -2,6 +2,7 @@ package linesprovider
 
 import (
 	"context"
+	"fmt"
 	"sync/atomic"
 )
 
@@ -31,11 +32,21 @@ func NewLineService(sport string, repo LineRepoInterface) *LineService {
 }
 
 func (s *LineService) GetLast(ctx context.Context) (CoefItem, error) {
-	return s.repo.GetLast(ctx)
+	coef, err := s.repo.GetLast(ctx)
+	if err != nil {
+		return CoefItem{}, fmt.Errorf("failed get last coef: %w", err)
+	}
+
+	return coef, nil
 }
 
 func (s *LineService) Save(ctx context.Context, coef float64) error {
-	return s.repo.Save(ctx, coef)
+	err := s.repo.Save(ctx, coef)
+	if err != nil {
+		return fmt.Errorf("failed to save coef: %w", err)
+	}
+
+	return nil
 }
 
 func NewLineServiceMap(sportNames []string, repoFactory func(string) LineRepoInterface) LineServiceMap {
