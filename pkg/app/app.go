@@ -38,10 +38,11 @@ func Run() {
 	readyService := ready.NewLinesReadyService(lineSyncedCheckers, redis)
 	readyService.Wg.Add(len(lineSyncedCheckers))
 
+	ctx := context.Background()
+
 	httpServer := ready.NewServer(config.Http, readyService)
 	go httpServer.Run()
 
-	ctx := context.Background()
 	linesPullService := linesprovider.InitLinesPullService(config, lineServiceMap)
 	linesPullService.StartPulling(ctx, readyService.Wg)
 
@@ -56,5 +57,5 @@ func Run() {
 	linesProcessorSrv := linesprocessor.NewLinesProcessorServer(deps)
 
 	log.Info("gRPC run...")
-	linesProcessorSrv.Run(config.Grpc.Addr())
+	linesProcessorSrv.Run(ctx, config.Grpc.Addr())
 }

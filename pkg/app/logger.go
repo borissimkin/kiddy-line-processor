@@ -14,7 +14,7 @@ func SetLogger(level string) {
 		logrus.SetLevel(logLevel)
 	}
 
-	logrus.SetFormatter(&logrus.JSONFormatter{
+	logrus.SetFormatter(&logrus.JSONFormatter{ //nolint:exhaustruct
 		TimestampFormat: "2006-01-02 15:04:05",
 	})
 

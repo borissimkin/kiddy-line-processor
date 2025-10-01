@@ -17,7 +17,7 @@ type RedisStorage struct {
 
 // Init initialize storage.
 func Init(cfg config.RedisConfig) *RedisStorage {
-	client := redis.NewClient(&redis.Options{
+	client := redis.NewClient(&redis.Options{ //nolint:exhaustruct
 		Addr:     fmt.Sprintf("%s:%d", cfg.Host, cfg.Port),
 		Password: cfg.Password,
 		DB:       cfg.DB,

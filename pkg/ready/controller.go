@@ -2,8 +2,10 @@ package ready
 
 import (
 	"encoding/json"
+	"errors"
 	"kiddy-line-processor/pkg/config"
 	"net/http"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -25,9 +27,27 @@ type ReadyResponse struct {
 }
 
 func (s *Server) Run() {
-	http.HandleFunc("/ready", s.readyHandle)
+	const (
+		idleTimeout  = 120 * time.Second
+		writeTimeout = 10 * time.Second
+		readTimeout  = 5 * time.Second
+	)
 
-	log.Fatal(http.ListenAndServe(s.cfg.Addr(), nil))
+	mux := http.NewServeMux()
+	mux.HandleFunc("/ready", s.readyHandle)
+
+	srv := &http.Server{ //nolint:exhaustruct
+		Addr:         s.cfg.Addr(),
+		Handler:      mux,
+		ReadTimeout:  readTimeout,
+		WriteTimeout: writeTimeout,
+		IdleTimeout:  idleTimeout,
+	}
+
+	err := srv.ListenAndServe()
+	if err != nil && !errors.Is(err, http.ErrAbortHandler) {
+		log.Fatalf("HTTP server failed: %v", err)
+	}
 }
 
 func (s *Server) readyHandle(writer http.ResponseWriter, r *http.Request) {
